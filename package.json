@@ -11,8 +11,9 @@
     "build:test": "tsc -p tsconfig.test.json",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:full": "npx eslint . --ext .js,.jsx,.ts,.tsx",
-    "package": "npm run clean && npm run build && pbiviz package && node scripts/normalize-package.cjs",
-    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run package && pbiviz lint && node scripts/certification-audit.cjs && npm run release-manifest && npm run audit",
+    "package": "npm run clean && npm run build && pbiviz package && node scripts/normalize-pbiviz.cjs",
+    "reproducibility-audit": "node scripts/reproducibility-audit.cjs",
+    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run release-manifest && npm run audit",
     "release-manifest": "node scripts/release-manifest.cjs",
     "audit": "npm audit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true}); require('fs').rmSync('dist-tests',{recursive:true,force:true})\""
@@ -28,9 +29,10 @@
     "eslint": "^9.39.1",
     "eslint-plugin-powerbi-visuals": "^1.1.1",
     "globals": "^15.14.0",
-    "jszip": "^3.10.1",
+    "jszip": "3.10.1",
     "powerbi-visuals-tools": "^7.2.1",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "write-file-atomic": "5.0.1"
   },
   "engines": {
     "node": ">=18"
