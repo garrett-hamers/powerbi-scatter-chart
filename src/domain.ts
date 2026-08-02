@@ -104,8 +104,38 @@ function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   const middle = Math.floor(sorted.length / 2);
   return sorted.length % 2 === 0
-    ? (sorted[middle - 1] + sorted[middle]) / 2
+    ? sorted[middle - 1] / 2 + sorted[middle] / 2
     : sorted[middle];
+}
+
+function mean(values: readonly number[]): number {
+  let scale = 0;
+  let scaledSum = 0;
+  for (const value of values) {
+    const absolute = Math.abs(value);
+    if (absolute > scale) {
+      scaledSum = scale === 0 ? Math.sign(value) : scaledSum * (scale / absolute) + value / absolute;
+      scale = absolute;
+    } else if (scale !== 0) {
+      scaledSum += value / scale;
+    }
+  }
+  return scale === 0 ? 0 : scale * (scaledSum / values.length);
+}
+
+function maxAbsolute(values: readonly number[]): number {
+  let maximum = 0;
+  for (const value of values) {
+    maximum = Math.max(maximum, Math.abs(value));
+  }
+  return maximum;
+}
+
+function normalizeFloatingPoint(value: number): number {
+  const nearestInteger = Math.round(value);
+  return Math.abs(value - nearestInteger) <= Number.EPSILON * Math.max(1, Math.abs(value)) * 16
+    ? nearestInteger
+    : value;
 }
 
 function threshold(
@@ -122,7 +152,10 @@ function threshold(
     return { value: 0, mode, provenance: `${axis} threshold: zero`, fallback: false };
   }
   if (mode === "mean") {
-    const value = values.reduce((sum, item) => sum + item, 0) / values.length;
+    const value = mean(values);
+    if (!Number.isFinite(value)) {
+      return { value: 0, mode, provenance: `${axis} threshold mean overflowed; using zero`, fallback: true };
+    }
     return { value, mode, provenance: `${axis} threshold: mean of ${values.length} visible points`, fallback: false };
   }
   if (mode === "fixed") {
@@ -164,18 +197,30 @@ export function calculateRegression(points: readonly ValidPoint[]): Regression {
   if (n < 2) {
     return { valid: false, n, reason: "At least two valid points are required." };
   }
-  const meanX = points.reduce((sum, point) => sum + point.x, 0) / n;
-  const meanY = points.reduce((sum, point) => sum + point.y, 0) / n;
-  const denominator = points.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
+  const xScale = maxAbsolute(points.map((point) => point.x));
+  const yScale = maxAbsolute(points.map((point) => point.y));
+  if (xScale === 0 || !Number.isFinite(xScale) || !Number.isFinite(yScale)) {
+    return { valid: false, n, reason: "Regression is unavailable because an axis has no finite variance." };
+  }
+  const normalizedYScale = yScale || 1;
+  const normalized = points.map((point) => ({ x: point.x / xScale, y: point.y / normalizedYScale }));
+  const meanX = mean(normalized.map((point) => point.x));
+  const meanY = mean(normalized.map((point) => point.y));
+  const denominator = normalized.reduce((sum, point) => sum + (point.x - meanX) ** 2, 0);
   if (denominator === 0) {
     return { valid: false, n, reason: "Regression is unavailable because X has zero variance." };
   }
-  const numerator = points.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0);
-  const slope = numerator / denominator;
-  const intercept = meanY - slope * meanX;
-  const total = points.reduce((sum, point) => sum + (point.y - meanY) ** 2, 0);
-  const residual = points.reduce((sum, point) => sum + (point.y - (slope * point.x + intercept)) ** 2, 0);
-  const r2 = total === 0 ? 1 : 1 - residual / total;
+  const numerator = normalized.reduce((sum, point) => sum + (point.x - meanX) * (point.y - meanY), 0);
+  const normalizedSlope = numerator / denominator;
+  const slope = normalizeFloatingPoint(normalizedSlope * (normalizedYScale / xScale));
+  const intercept = normalizeFloatingPoint(normalizedYScale * meanY - slope * (xScale * meanX));
+  if (!Number.isFinite(slope) || !Number.isFinite(intercept)) {
+    return { valid: false, n, reason: "Regression is unavailable because its coefficients are not finite." };
+  }
+  const total = normalized.reduce((sum, point) => sum + (point.y - meanY) ** 2, 0);
+  const r2 = total === 0
+    ? 1
+    : Math.min(1, Math.max(0, (numerator * numerator) / (denominator * total)));
   const sign = intercept < 0 ? "-" : "+";
   const equation = `y = ${formatNumber(slope)}x ${sign} ${formatNumber(Math.abs(intercept))}`;
   return { valid: true, n, slope, intercept, r2, equation };
@@ -230,7 +275,10 @@ export function buildScatterModel(rawPoints: readonly RawPoint[], settings: Thre
   for (const point of classified) {
     counts[point.quadrant]++;
   }
-  const maxPoints = settings.maxPoints ?? DEFAULT_MAX_POINTS;
+  const requestedMaxPoints = settings.maxPoints;
+  const maxPoints = requestedMaxPoints !== undefined && Number.isFinite(requestedMaxPoints)
+    ? Math.min(DEFAULT_MAX_POINTS, Math.max(1, Math.floor(requestedMaxPoints)))
+    : DEFAULT_MAX_POINTS;
   const points = classified.slice(0, maxPoints);
   const hasHighlights = settings.hasHighlights ?? rawPoints.some((point) => point.highlighted === true);
   return {

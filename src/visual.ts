@@ -25,8 +25,15 @@ interface PointRecord {
   identity: ISelectionId;
 }
 
+interface RenderedPoint {
+  point: ClassifiedPoint;
+  record: PointRecord;
+  element?: SVGCircleElement;
+}
+
 const SVG_NS = "http://www.w3.org/2000/svg";
 const palette = ["#0078d4", "#8764b8", "#107c10", "#d83b01", "#008272", "#5c2d91"];
+const EMPTY_IDENTITY_KEY = "__empty__";
 
 const translations: Record<string, Record<string, string>> = {
   en: {
@@ -119,26 +126,46 @@ function setAttributes(element: Element, attributes: Record<string, string | num
 }
 
 function numericScale(value: number, min: number, max: number, outputMin: number, outputMax: number): number {
-  if (max === min) {
+  const scale = Math.max(Math.abs(value), Math.abs(min), Math.abs(max), 1);
+  const normalizedMin = min / scale;
+  const normalizedMax = max / scale;
+  const normalizedValue = value / scale;
+  const denominator = normalizedMax - normalizedMin;
+  if (denominator === 0 || !Number.isFinite(denominator)) {
     return (outputMin + outputMax) / 2;
   }
-  return outputMin + ((value - min) / (max - min)) * (outputMax - outputMin);
+  const ratio = (normalizedValue - normalizedMin) / denominator;
+  return outputMin + ratio * (outputMax - outputMin);
 }
 
 function extent(values: readonly number[], thresholdValue: number): [number, number] {
-  if (values.length === 0) {
-    return [thresholdValue - 1, thresholdValue + 1];
+  let min = thresholdValue;
+  let max = thresholdValue;
+  for (const value of values) {
+    min = Math.min(min, value);
+    max = Math.max(max, value);
   }
-  let min = Math.min(...values, thresholdValue);
-  let max = Math.max(...values, thresholdValue);
   if (min === max) {
-    const padding = Math.abs(min) * 0.1 || 1;
-    min -= padding;
-    max += padding;
+    const padding = Math.min(Math.max(Math.abs(min), 1) * 0.1, Number.MAX_VALUE / 4);
+    min = Math.max(-Number.MAX_VALUE, min - padding);
+    max = Math.min(Number.MAX_VALUE, max + padding);
   } else {
-    const padding = (max - min) * 0.06;
-    min -= padding;
-    max += padding;
+    const padding = Math.min(Math.max(Math.abs(min), Math.abs(max), 1) * 0.06, Number.MAX_VALUE / 4);
+    min = Math.max(-Number.MAX_VALUE, min - padding);
+    max = Math.min(Number.MAX_VALUE, max + padding);
+  }
+  return [min, max];
+}
+
+function numericRange(values: readonly number[]): [number, number] | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+  let min = values[0];
+  let max = values[0];
+  for (const value of values.slice(1)) {
+    min = Math.min(min, value);
+    max = Math.max(max, value);
   }
   return [min, max];
 }
@@ -177,6 +204,10 @@ function isComparableSelectionId(id: HostSelectionId): id is ISelectionId {
     typeof Reflect.get(id, "getKey") === "function";
 }
 
+function compareText(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 export class Visual implements IVisual {
   private readonly host: IVisualHost;
   private readonly selectionManager: ISelectionManager;
@@ -186,6 +217,7 @@ export class Visual implements IVisual {
   private readonly listeners: Array<() => void> = [];
   private readonly renderListeners: Array<() => void> = [];
   private readonly identityByKey = new Map<string, ISelectionId>();
+  private readonly renderedPoints = new Map<string, RenderedPoint>();
   private selectedKeys = new Set<string>();
   private model?: ScatterModel;
   private lastDataView?: powerbi.DataView;
@@ -193,10 +225,17 @@ export class Visual implements IVisual {
   private lastViewport = { width: 0, height: 0 };
   private lastSettings: VisualSettings = readVisualSettings();
   private locale = "en";
+  private numberFormatter?: Intl.NumberFormat;
   private rtl = false;
   private reducedMotion = false;
   private allowInteractions = true;
   private emptyLongPressTimer?: number;
+  private pointLongPressTimer?: number;
+  private touchTooltipTimer?: number;
+  private focusedIdentityKey?: string;
+  private tooltipIdentityKey?: string;
+  private tooltipIsTouch = false;
+  private destroyed = false;
 
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
@@ -210,15 +249,30 @@ export class Visual implements IVisual {
     this.root = options.element;
     this.root.className = "atlyn-scatter";
     this.locale = this.host.locale.toLowerCase().slice(0, 2);
+    try {
+      this.numberFormatter = new Intl.NumberFormat(this.host.locale, {
+        maximumFractionDigits: 2,
+        minimumFractionDigits: 0
+      });
+    } catch (error) {
+      if (!(error instanceof RangeError)) {
+        throw error;
+      }
+    }
     this.rtl = this.isRtl();
     this.reducedMotion = typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia("(prefers-reduced-motion: reduce)").matches
       : false;
     this.root.setAttribute("dir", this.rtl ? "rtl" : "ltr");
     this.root.setAttribute("data-reduced-motion", String(this.reducedMotion));
+    this.root.setAttribute("data-high-contrast", String(this.host.colorPalette.isHighContrast));
     this.root.setAttribute("role", "application");
+    this.root.setAttribute("aria-label", "Atlyn Scatter");
     this.root.tabIndex = 0;
     this.selectionManager.registerOnSelectCallback((ids) => {
+      if (this.destroyed) {
+        return;
+      }
       this.selectedKeys = this.keysForSelection(ids);
       this.rerenderFromLastData();
     });
@@ -234,13 +288,22 @@ export class Visual implements IVisual {
         void this.clearSelection();
       }
     }, true);
+    this.addListener(this.root, "focusin", (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.classList.contains("atlyn-scatter__point")) {
+        this.focusedIdentityKey = target.getAttribute("data-identity-key") ?? undefined;
+      }
+    }, true);
   }
 
   public update(options: VisualUpdateOptions): void {
+    if (this.destroyed) {
+      return;
+    }
     this.lastUpdateOptions = options;
     this.renderingStarted(options);
     try {
-      const view = options.dataViews[0];
+      const view = options.dataViews?.[0];
       this.lastDataView = view;
       this.lastViewport = { width: options.viewport.width, height: options.viewport.height };
       const records = this.readPoints(view);
@@ -258,7 +321,11 @@ export class Visual implements IVisual {
   }
 
   public destroy(): void {
+    this.destroyed = true;
     this.clearEmptyLongPress();
+    this.clearPointLongPress();
+    this.clearTouchTooltip();
+    this.hideTooltip();
     for (const remove of this.listeners.splice(0)) {
       remove();
     }
@@ -267,7 +334,10 @@ export class Visual implements IVisual {
       this.root.removeChild(this.root.firstChild);
     }
     this.identityByKey.clear();
+    this.renderedPoints.clear();
     this.selectedKeys.clear();
+    this.focusedIdentityKey = undefined;
+    this.tooltipIdentityKey = undefined;
     this.model = undefined;
     this.lastDataView = undefined;
     this.lastUpdateOptions = undefined;
@@ -302,7 +372,10 @@ export class Visual implements IVisual {
     this.identityByKey.clear();
 
     if (useGroups) {
-      for (const group of grouped) {
+      const orderedGroups = [...grouped].sort((left, right) =>
+        compareText(primitiveText(left.name), primitiveText(right.name))
+      );
+      for (const group of orderedGroups) {
         const groupX = findColumn(group.values, "X");
         const groupY = findColumn(group.values, "Y");
         if (!groupX || !groupY) {
@@ -341,7 +414,11 @@ export class Visual implements IVisual {
         }
       }
       if (records.length > 0) {
-        return records;
+        return records.sort((left, right) =>
+          compareText(left.point.series ?? "", right.point.series ?? "") ||
+          compareText(left.point.category, right.point.category) ||
+          compareText(left.point.identityKey ?? "", right.point.identityKey ?? "")
+        );
       }
     }
 
@@ -381,7 +458,11 @@ export class Visual implements IVisual {
         }
       });
     }
-    return records;
+    return records.sort((left, right) =>
+      compareText(left.point.series ?? "", right.point.series ?? "") ||
+      compareText(left.point.category, right.point.category) ||
+      compareText(left.point.identityKey ?? "", right.point.identityKey ?? "")
+    );
   }
 
   private render(
@@ -390,23 +471,31 @@ export class Visual implements IVisual {
     records: PointRecord[],
     settings: VisualSettings
   ): void {
+    const focusKey = this.focusedIdentityKey;
     this.clearRenderListeners();
     this.clearEmptyLongPress();
+    this.clearPointLongPress();
+    this.clearTouchTooltip();
+    this.hideTooltip();
+    this.renderedPoints.clear();
     while (this.root.firstChild) {
       this.root.removeChild(this.root.firstChild);
     }
     const model = this.model;
     if (!model || records.length === 0) {
       this.appendMessage(this.t("noData"));
+      this.restoreFocus(focusKey);
       return;
     }
     if (model.validCount === 0) {
       this.appendMessage(this.t("invalid"));
       this.renderSemanticTable(model, settings.showSemanticTable);
+      this.restoreFocus(focusKey);
       return;
     }
     if (width < 80 || height < 80) {
       this.appendMessage(this.t("compact"));
+      this.restoreFocus(focusKey);
       return;
     }
 
@@ -421,17 +510,96 @@ export class Visual implements IVisual {
     });
     this.addListener(svg, "contextmenu", (event) => {
       event.preventDefault();
-      this.showContextMenu(undefined, event);
+      const rendered = this.renderedPointFromEvent(event);
+      this.showContextMenu(rendered?.record.identity, event);
     });
     this.addListener(svg, "pointerdown", (event) => {
       const pointer = event as PointerEvent;
-      if (pointer.pointerType === "touch" && event.target === svg) {
-        this.emptyLongPressTimer = window.setTimeout(() => this.showContextMenu(undefined, pointer), 550);
+      if (pointer.pointerType !== "touch") {
+        return;
+      }
+      const rendered = this.renderedPointFromEvent(event);
+      if (rendered) {
+        this.clearPointLongPress();
+        this.clearTouchTooltip();
+        this.touchTooltipTimer = window.setTimeout(() => {
+          this.showTooltip(rendered.point, rendered.record.identity, pointer);
+        }, 350);
+        this.pointLongPressTimer = window.setTimeout(() => {
+          this.clearTouchTooltip();
+          this.showContextMenu(rendered.record.identity, pointer);
+        }, 650);
+      } else {
+        this.emptyLongPressTimer = window.setTimeout(() => this.showContextMenu(undefined, pointer), 650);
       }
     });
-    this.addListener(svg, "pointerup", () => this.clearEmptyLongPress());
-    this.addListener(svg, "pointercancel", () => this.clearEmptyLongPress());
-    this.addListener(svg, "pointerleave", () => this.clearEmptyLongPress());
+    this.addListener(svg, "pointermove", (event) => {
+      const rendered = this.renderedPointFromEvent(event);
+      if (rendered && this.tooltipIdentityKey === rendered.record.point.identityKey) {
+        this.moveTooltip(event);
+      }
+    });
+    this.addListener(svg, "pointerover", (event) => {
+      const rendered = this.renderedPointFromEvent(event);
+      if (rendered) {
+        this.showTooltip(rendered.point, rendered.record.identity, event);
+      }
+    });
+    this.addListener(svg, "pointerout", (event) => {
+      const rendered = this.renderedPointFromEvent(event);
+      const related = (event as PointerEvent).relatedTarget;
+      if (rendered && (!(related instanceof Element) || !related.closest(".atlyn-scatter__point"))) {
+        this.hideTooltip(event);
+      }
+    });
+    this.addListener(svg, "focusin", (event) => {
+      const rendered = this.renderedPointFromEvent(event);
+      if (rendered) {
+        this.showTooltip(rendered.point, rendered.record.identity, event);
+      }
+    });
+    this.addListener(svg, "focusout", (event) => this.hideTooltip(event));
+    this.addListener(svg, "click", (event) => {
+      const rendered = this.renderedPointFromEvent(event);
+      if (rendered) {
+        event.stopPropagation();
+        void this.select(rendered.record.identity, event as MouseEvent);
+      } else if (event.target === svg) {
+        void this.clearSelection();
+      }
+    });
+    this.addListener(svg, "keydown", (event) => {
+      const keyboardEvent = event as KeyboardEvent;
+      const rendered = this.renderedPointFromEvent(event);
+      if (!rendered) {
+        return;
+      }
+      if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+        keyboardEvent.preventDefault();
+        void this.select(rendered.record.identity, keyboardEvent);
+      } else if (keyboardEvent.key === "Escape") {
+        keyboardEvent.preventDefault();
+        void this.clearSelection();
+      } else if (["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"].includes(keyboardEvent.key)) {
+        keyboardEvent.preventDefault();
+        this.moveFocus(Number(rendered.element.getAttribute("data-point-index") ?? 0), keyboardEvent.key);
+      }
+    });
+    this.addListener(svg, "pointerup", () => {
+      this.clearEmptyLongPress();
+      this.clearPointLongPress();
+      this.clearTouchTooltip();
+    });
+    this.addListener(svg, "pointercancel", () => {
+      this.clearEmptyLongPress();
+      this.clearPointLongPress();
+      this.clearTouchTooltip();
+    });
+    this.addListener(svg, "pointerleave", () => {
+      this.clearEmptyLongPress();
+      this.clearPointLongPress();
+      this.clearTouchTooltip();
+    });
     this.root.appendChild(svg);
 
     const compact = width < 280 || height < 190;
@@ -473,23 +641,31 @@ export class Visual implements IVisual {
     if (settings.showRegression && model.regression.valid) {
       this.drawRegression(svg, model, x, y, xExtent);
     }
-    const recordsByKey = new Map(records.map((record) => [record.point.identityKey ?? "", record]));
+    const recordsByKey = new Map(records.map((record) => [record.point.identityKey ?? EMPTY_IDENTITY_KEY, record]));
+    const seriesValues = [...new Set(model.points
+      .map((point) => point.series)
+      .filter((value): value is string => value !== undefined))]
+      .sort(compareText);
     const sizeValues = model.points.map((point) => point.size).filter((value): value is number => value !== undefined);
-    const sizeMin = sizeValues.length ? Math.min(...sizeValues) : 0;
-    const sizeMax = sizeValues.length ? Math.max(...sizeValues) : 1;
+    const sizeRange = numericRange(sizeValues) ?? [0, 1];
+    const sizeMin = sizeRange[0];
+    const sizeMax = sizeRange[1];
     const gradientValues = model.points.map((point) => point.gradient).filter((value): value is number => value !== undefined);
-    const gradientMin = gradientValues.length ? Math.min(...gradientValues) : 0;
-    const gradientMax = gradientValues.length ? Math.max(...gradientValues) : 1;
+    const gradientRange = numericRange(gradientValues) ?? [0, 1];
+    const gradientMin = gradientRange[0];
+    const gradientMax = gradientRange[1];
     model.points.forEach((point, index) => {
-      const record = recordsByKey.get(point.identityKey ?? "");
+      const record = recordsByKey.get(point.identityKey ?? EMPTY_IDENTITY_KEY);
       if (record) {
+        const key = point.identityKey ?? `${EMPTY_IDENTITY_KEY}-${index}`;
+        this.renderedPoints.set(key, { point, record });
         this.drawPoint(
           svg,
           point,
-          record.identity,
           index,
           x,
           y,
+          point.series === undefined ? 0 : Math.max(0, seriesValues.indexOf(point.series)),
           sizeMin,
           sizeMax,
           gradientMin,
@@ -525,6 +701,7 @@ export class Visual implements IVisual {
       svg.appendChild(disclosure);
     }
     this.renderSemanticTable(model, settings.showSemanticTable);
+    this.restoreFocus(focusKey);
   }
 
   private appendMessage(text: string): void {
@@ -640,7 +817,7 @@ export class Visual implements IVisual {
         fill: this.textColor(),
         "text-anchor": this.rtl ? "end" : "start"
       });
-      setText(xLabel, `${this.t("threshold")} ${formatNumber(model.xThreshold.value)}`);
+      setText(xLabel, `${this.t("threshold")} ${this.formatValue(model.xThreshold.value)}`);
       const yLabel = svgElement("text");
       setAttributes(yLabel, {
         x: this.rtl ? margin.left + plotWidth - 4 : margin.left + 4,
@@ -649,7 +826,7 @@ export class Visual implements IVisual {
         fill: this.textColor(),
         "text-anchor": this.rtl ? "end" : "start"
       });
-      setText(yLabel, `${this.t("threshold")} ${formatNumber(model.yThreshold.value)}`);
+      setText(yLabel, `${this.t("threshold")} ${this.formatValue(model.yThreshold.value)}`);
       svg.append(xLabel, yLabel);
     }
   }
@@ -698,7 +875,7 @@ export class Visual implements IVisual {
       "text-anchor": this.rtl ? "end" : "start",
       fill: axisColor
     });
-    setText(xStart, formatNumber(xExtent[0]));
+    setText(xStart, this.formatValue(xExtent[0]));
     const xEnd = svgElement("text");
     setAttributes(xEnd, {
       x: x(xExtent[1]),
@@ -707,7 +884,7 @@ export class Visual implements IVisual {
       "text-anchor": this.rtl ? "start" : "end",
       fill: axisColor
     });
-    setText(xEnd, formatNumber(xExtent[1]));
+    setText(xEnd, this.formatValue(xExtent[1]));
     const yStart = svgElement("text");
     setAttributes(yStart, {
       x: this.rtl ? yAxisX + 6 : yAxisX - 6,
@@ -716,7 +893,7 @@ export class Visual implements IVisual {
       "text-anchor": this.rtl ? "start" : "end",
       fill: axisColor
     });
-    setText(yStart, formatNumber(yExtent[0]));
+    setText(yStart, this.formatValue(yExtent[0]));
     const yEnd = svgElement("text");
     setAttributes(yEnd, {
       x: this.rtl ? yAxisX + 6 : yAxisX - 6,
@@ -725,7 +902,7 @@ export class Visual implements IVisual {
       "text-anchor": this.rtl ? "start" : "end",
       fill: axisColor
     });
-    setText(yEnd, formatNumber(yExtent[1]));
+    setText(yEnd, this.formatValue(yExtent[1]));
     svg.append(xStart, xEnd, yStart, yEnd);
   }
 
@@ -756,10 +933,10 @@ export class Visual implements IVisual {
   private drawPoint(
     svg: SVGSVGElement,
     point: ClassifiedPoint,
-    identity: ISelectionId,
     index: number,
     x: (value: number) => number,
     y: (value: number) => number,
+    seriesIndex: number,
     sizeMin: number,
     sizeMax: number,
     gradientMin: number,
@@ -771,8 +948,6 @@ export class Visual implements IVisual {
     const radius = point.size === undefined
       ? Math.max(settings.minMarkerSize, 5)
       : numericScale(point.size, sizeMin, sizeMax, settings.minMarkerSize, settings.maxMarkerSize);
-    const seriesValues = [...new Set(this.model?.points.map((item) => item.series).filter((value): value is string => value !== undefined))];
-    const seriesIndex = point.series === undefined ? 0 : Math.max(0, seriesValues.indexOf(point.series));
     const highContrast = this.host.colorPalette.isHighContrast;
     const selected = point.identityKey !== undefined && this.selectedKeys.has(point.identityKey);
     const fill = highContrast
@@ -791,64 +966,18 @@ export class Visual implements IVisual {
       "stroke-width": selected ? 3 : highContrast ? 2 : 1,
       "stroke-dasharray": highContrast && !selected ? "3 2" : "",
       opacity,
-      tabindex: 0,
+      tabindex: index === 0 ? 0 : -1,
       role: "button",
       "aria-label": this.pointLabel(point),
       "aria-pressed": String(selected),
       "data-point-index": index,
+      "data-identity-key": point.identityKey ?? `${EMPTY_IDENTITY_KEY}-${index}`,
       "data-selected": String(selected)
     });
     circle.classList.add("atlyn-scatter__point");
     if (selected) {
       circle.classList.add("atlyn-scatter__point--selected");
     }
-    let longPressTimer: number | undefined;
-    this.addListener(circle, "click", (event) => {
-      event.stopPropagation();
-      void this.select(identity, event as MouseEvent);
-    });
-    this.addListener(circle, "keydown", (event) => {
-      const keyboardEvent = event as KeyboardEvent;
-      if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
-        keyboardEvent.preventDefault();
-        void this.select(identity, keyboardEvent);
-      } else if (keyboardEvent.key === "Escape") {
-        void this.clearSelection();
-      } else if (keyboardEvent.key === "ArrowRight" || keyboardEvent.key === "ArrowDown" || keyboardEvent.key === "ArrowLeft" || keyboardEvent.key === "ArrowUp") {
-        this.moveFocus(index, keyboardEvent.key);
-      }
-    });
-    this.addListener(circle, "pointerenter", (event) => this.showTooltip(point, identity, event));
-    this.addListener(circle, "pointerleave", (event) => {
-      this.hideTooltip(event);
-      if (longPressTimer !== undefined) {
-        window.clearTimeout(longPressTimer);
-        longPressTimer = undefined;
-      }
-    });
-    this.addListener(circle, "pointerdown", (event) => {
-      const pointer = event as PointerEvent;
-      if (pointer.pointerType === "touch") {
-        longPressTimer = window.setTimeout(() => this.showContextMenu(identity, pointer), 550);
-      }
-    });
-    this.addListener(circle, "pointerup", () => {
-      if (longPressTimer !== undefined) {
-        window.clearTimeout(longPressTimer);
-        longPressTimer = undefined;
-      }
-    });
-    this.addListener(circle, "pointercancel", () => {
-      if (longPressTimer !== undefined) {
-        window.clearTimeout(longPressTimer);
-        longPressTimer = undefined;
-      }
-    });
-    this.addListener(circle, "contextmenu", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      this.showContextMenu(identity, event);
-    });
     svg.appendChild(circle);
 
     const stride = Math.max(1, Math.round(100 / settings.labelDensity));
@@ -873,6 +1002,7 @@ export class Visual implements IVisual {
     margin: { top: number; right: number; bottom: number; left: number }
   ): void {
     const seriesValues = [...new Set(model.points.map((point) => point.series).filter((value): value is string => value !== undefined))];
+    seriesValues.sort(compareText);
     if (seriesValues.length === 0) {
       return;
     }
@@ -919,7 +1049,7 @@ export class Visual implements IVisual {
     });
     const regressionText = showRegression
       ? model.regression.valid
-        ? `${this.t("regression")}: ${model.regression.equation}; R2 ${formatNumber(model.regression.r2 ?? 0)}; n=${model.regression.n}`
+        ? `${this.t("regression")}: ${model.regression.equation}; R2 ${this.formatValue(model.regression.r2 ?? 0)}; n=${model.regression.n}`
         : `${this.t("regression")}: ${this.t("unavailable")} (${model.regression.reason ?? ""})`
       : "";
     setText(annotation, `${model.xThreshold.provenance}; ${model.yThreshold.provenance}. ${regressionText}`);
@@ -964,7 +1094,7 @@ export class Visual implements IVisual {
     const body = htmlElement("tbody");
     model.points.slice(0, 500).forEach((point) => {
       const row = htmlElement("tr");
-      const values = [point.category, formatNumber(point.x), formatNumber(point.y), this.quadrantLabel(point.quadrant), this.pointStatus(point)];
+      const values = [point.category, this.formatValue(point.x), this.formatValue(point.y), this.quadrantLabel(point.quadrant), this.pointStatus(point)];
       values.forEach((value) => {
         const cell = htmlElement("td");
         setText(cell, value);
@@ -979,7 +1109,7 @@ export class Visual implements IVisual {
   private pointLabel(point: ClassifiedPoint): string {
     const boundary = point.onXThreshold || point.onYThreshold ? `, ${this.t("boundary")}` : "";
     const series = point.series ? `, ${point.series}` : "";
-    return `${point.category}${series}: X ${formatNumber(point.x)}, Y ${formatNumber(point.y)}, ${this.quadrantLabel(point.quadrant)}${boundary}`;
+    return `${point.category}${series}: X ${this.formatValue(point.x)}, Y ${this.formatValue(point.y)}, ${this.quadrantLabel(point.quadrant)}${boundary}`;
   }
 
   private pointStatus(point: ClassifiedPoint): string {
@@ -1033,10 +1163,45 @@ export class Visual implements IVisual {
     return translations[this.locale]?.[key] ?? translations.en[key] ?? key;
   }
 
+  private formatValue(value: number): string {
+    if (!Number.isFinite(value)) {
+      return "n/a";
+    }
+    return this.numberFormatter?.format(value) ?? formatNumber(value);
+  }
+
   private isRtl(): boolean {
     const locale = this.host.locale.toLowerCase();
     return locale.startsWith("ar") || locale.startsWith("he") || locale.startsWith("fa") ||
       (typeof document !== "undefined" && document.documentElement.dir === "rtl");
+  }
+
+  private renderedPointFromEvent(event: Event): (RenderedPoint & { element: SVGCircleElement }) | undefined {
+    const target = event.target;
+    if (!(target instanceof Element)) {
+      return undefined;
+    }
+    const element = target.closest<SVGCircleElement>(".atlyn-scatter__point");
+    if (!(element instanceof SVGCircleElement)) {
+      return undefined;
+    }
+    const key = element.getAttribute("data-identity-key");
+    const rendered = key === null ? undefined : this.renderedPoints.get(key);
+    return rendered ? { ...rendered, element } : undefined;
+  }
+
+  private restoreFocus(focusKey: string | undefined): void {
+    const point = focusKey === undefined
+      ? undefined
+      : Array.from(this.root.querySelectorAll<SVGCircleElement>(".atlyn-scatter__point"))
+        .find((candidate) => candidate.getAttribute("data-identity-key") === focusKey);
+    if (point) {
+      point.focus();
+      return;
+    }
+    if (focusKey !== undefined) {
+      this.root.focus();
+    }
   }
 
   private moveFocus(index: number, key: string): void {
@@ -1051,6 +1216,7 @@ export class Visual implements IVisual {
         : undefined;
     const delta = horizontalDelta ?? (key === "ArrowUp" ? -1 : 1);
     const next = (index + delta + points.length) % points.length;
+    points.forEach((point, pointIndex) => point.setAttribute("tabindex", pointIndex === next ? "0" : "-1"));
     points[next]?.focus();
   }
 
@@ -1073,20 +1239,31 @@ export class Visual implements IVisual {
   }
 
   private async clearSelection(): Promise<void> {
+    if (!this.allowInteractions) {
+      return;
+    }
     await this.selectionManager.clear();
     this.selectedKeys.clear();
     this.rerenderFromLastData();
   }
 
   private showTooltip(point: ClassifiedPoint, identity: ISelectionId, event: Event): void {
+    if (!this.allowInteractions || !this.host.tooltipService.enabled()) {
+      return;
+    }
     const pointer = event as PointerEvent;
+    const identityKey = point.identityKey ?? EMPTY_IDENTITY_KEY;
+    if (this.tooltipIdentityKey === identityKey) {
+      this.moveTooltip(event);
+      return;
+    }
     const items: Array<{ displayName: string; value: string }> = [
       { displayName: "Category", value: point.category },
-      { displayName: "X", value: formatNumber(point.x) },
-      { displayName: "Y", value: formatNumber(point.y) },
+      { displayName: "X", value: this.formatValue(point.x) },
+      { displayName: "Y", value: this.formatValue(point.y) },
       { displayName: "Quadrant", value: this.quadrantLabel(point.quadrant) },
-      { displayName: "X threshold", value: this.model ? `${formatNumber(this.model.xThreshold.value)} (${this.model.xThreshold.mode})` : "" },
-      { displayName: "Y threshold", value: this.model ? `${formatNumber(this.model.yThreshold.value)} (${this.model.yThreshold.mode})` : "" }
+      { displayName: "X threshold", value: this.model ? `${this.formatValue(this.model.xThreshold.value)} (${this.model.xThreshold.mode})` : "" },
+      { displayName: "Y threshold", value: this.model ? `${this.formatValue(this.model.yThreshold.value)} (${this.model.yThreshold.mode})` : "" }
     ];
     if (point.series !== undefined) {
       items.push({ displayName: "Series", value: point.series });
@@ -1099,29 +1276,59 @@ export class Visual implements IVisual {
       items.push({ displayName: "Boundary", value: boundaries });
     }
     if (point.size !== undefined) {
-      items.push({ displayName: "Size", value: formatNumber(point.size) });
+      items.push({ displayName: "Size", value: this.formatValue(point.size) });
     }
     if (point.gradient !== undefined) {
-      items.push({ displayName: "Gradient", value: formatNumber(point.gradient) });
+      items.push({ displayName: "Gradient", value: this.formatValue(point.gradient) });
     }
     Object.entries(point.tooltips).forEach(([displayName, value]) => items.push({ displayName, value: String(value ?? "") }));
+    this.tooltipIdentityKey = identityKey;
+    this.tooltipIsTouch = pointer.pointerType === "touch";
     this.host.tooltipService.show({
       coordinates: [pointer.clientX ?? 0, pointer.clientY ?? 0],
-      isTouchEvent: pointer.pointerType === "touch",
+      isTouchEvent: this.tooltipIsTouch,
       dataItems: items,
       identities: [identity]
     });
   }
 
-  private hideTooltip(event: Event): void {
+  private moveTooltip(event: Event): void {
+    if (this.tooltipIdentityKey === undefined || !this.host.tooltipService.enabled()) {
+      return;
+    }
+    const identity = this.identityByKey.get(this.tooltipIdentityKey);
+    if (!identity) {
+      return;
+    }
     const pointer = event as PointerEvent;
-    this.host.tooltipService.hide({
-      isTouchEvent: pointer.pointerType === "touch",
-      immediately: false
+    this.host.tooltipService.move({
+      coordinates: [pointer.clientX ?? 0, pointer.clientY ?? 0],
+      isTouchEvent: this.tooltipIsTouch,
+      identities: [identity]
     });
   }
 
+  private hideTooltip(event?: Event): void {
+    if (this.tooltipIdentityKey === undefined) {
+      return;
+    }
+    const pointer = event as PointerEvent | undefined;
+    this.host.tooltipService.hide({
+      isTouchEvent: pointer?.pointerType === "touch" || this.tooltipIsTouch,
+      immediately: pointer?.pointerType === "touch" || this.tooltipIsTouch
+    });
+    this.tooltipIdentityKey = undefined;
+    this.tooltipIsTouch = false;
+  }
+
   private showContextMenu(identity: ISelectionId | undefined, event: Event): void {
+    if (!this.allowInteractions) {
+      return;
+    }
+    this.clearEmptyLongPress();
+    this.clearPointLongPress();
+    this.clearTouchTooltip();
+    this.hideTooltip(event);
     const pointer = event as PointerEvent;
     void this.selectionManager.showContextMenu(identity ?? this.emptySelectionId, {
       x: pointer.clientX ?? 0,
@@ -1160,6 +1367,20 @@ export class Visual implements IVisual {
     }
   }
 
+  private clearPointLongPress(): void {
+    if (this.pointLongPressTimer !== undefined) {
+      window.clearTimeout(this.pointLongPressTimer);
+      this.pointLongPressTimer = undefined;
+    }
+  }
+
+  private clearTouchTooltip(): void {
+    if (this.touchTooltipTimer !== undefined) {
+      window.clearTimeout(this.touchTooltipTimer);
+      this.touchTooltipTimer = undefined;
+    }
+  }
+
   private renderingStarted(options: VisualUpdateOptions): void {
     this.host.eventService.renderingStarted(options);
   }
@@ -1170,6 +1391,9 @@ export class Visual implements IVisual {
 
   private renderError(options: VisualUpdateOptions, error: unknown): void {
     this.clearEmptyLongPress();
+    this.clearPointLongPress();
+    this.clearTouchTooltip();
+    this.hideTooltip();
     const message = error instanceof Error ? error.message : String(error);
     while (this.root.firstChild) {
       this.root.removeChild(this.root.firstChild);

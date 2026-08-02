@@ -136,3 +136,32 @@ test("separates received, analyzed, and rendered counts for invalid and partial 
   assert.equal(model.partialData, true);
   assert.equal(model.regression.n, 2);
 });
+
+test("keeps degenerate and extreme finite data render-safe", () => {
+  const model = buildScatterModel(Array.from({ length: 10000 }, (_, index) => ({
+    category: String(index),
+    x: Number.MAX_VALUE,
+    y: Number.MAX_VALUE,
+    size: Number.MAX_VALUE,
+    gradient: Number.MAX_VALUE
+  })), { xMode: "mean", yMode: "mean", maxPoints: 0 });
+
+  assert.equal(model.validCount, 10000);
+  assert.equal(model.renderedCount, 1);
+  assert.ok(Number.isFinite(model.xThreshold.value));
+  assert.ok(Number.isFinite(model.yThreshold.value));
+  assert.equal(model.regression.valid, false);
+  assert.equal(model.invalidRows, 0);
+});
+
+test("retains a valid zero-valued dependent axis regression", () => {
+  const regression = calculateRegression([
+    { category: "a", x: 1, y: 0, tooltips: {}, highlighted: false },
+    { category: "b", x: 2, y: 0, tooltips: {}, highlighted: false },
+    { category: "c", x: 3, y: 0, tooltips: {}, highlighted: false }
+  ]);
+  assert.equal(regression.valid, true);
+  assert.equal(regression.slope, 0);
+  assert.equal(regression.intercept, 0);
+  assert.equal(regression.r2, 1);
+});

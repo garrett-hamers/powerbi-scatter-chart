@@ -21,6 +21,9 @@ test("keeps the stable visual identity and certification-first capabilities", ()
 test("declares bounded categorical reduction and the complete optional role contract", () => {
   const capabilities = JSON.parse(fs.readFileSync(path.join(root, "capabilities.json"), "utf8")) as any;
   const mapping = capabilities.dataViewMappings[0];
+  assert.equal(mapping.conditions[0].Category.min, 1);
+  assert.equal(mapping.conditions[0].X.min, 1);
+  assert.equal(mapping.conditions[0].Y.min, 1);
   assert.equal(mapping.categorical.categories.dataReductionAlgorithm.window.count, 10000);
   assert.equal(mapping.categorical.values.group.by, "Series");
   const selectedRoles = mapping.categorical.values.group.select.map((item: any) => item.for.in);
@@ -47,5 +50,5 @@ test("keeps formatting, localization, and privilege metadata aligned", () => {
   for (const role of capabilities.dataRoles) {
     assert.equal(typeof resources[role.displayNameKey], "string");
   }
-  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")).stringResources, ["stringResources"]);
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")).stringResources, []);
 });
