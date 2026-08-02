@@ -15,6 +15,8 @@ test("declares direct release tooling and complete audit gates", () => {
   assert.match(packageJson.scripts["certification-audit"], /node scripts\/certification-audit\.cjs/);
   assert.equal(packageJson.scripts.audit, "npm audit");
   assert.match(packageJson.scripts.package, /npm run clean/);
+  assert.match(packageJson.scripts.package, /node scripts\/normalize-package\.cjs/);
+  assert.equal(packageJson.scripts["release-manifest"], "node scripts/release-manifest.cjs");
   for (const section of ["dependencies", "devDependencies"]) {
     for (const [dependency, version] of Object.entries(packageJson[section])) {
       assert.equal(lockfile.packages[""][section][dependency], version);
