@@ -1,0 +1,23 @@
+{
+  "visual": {
+    "name": "atlynScatter",
+    "displayName": "Atlyn Scatter",
+    "guid": "atlynScatter",
+    "visualClassName": "Visual",
+    "version": "1.0.0.0",
+    "description": "Explainable quadrant analysis with accessible scatter plotting and explicit regression.",
+    "supportUrl": "https://github.com/garrett-hamers/powerbi-scatter-chart",
+    "gitHubUrl": "https://github.com/garrett-hamers/powerbi-scatter-chart"
+  },
+  "apiVersion": "5.11.0",
+  "author": {
+    "name": "Atlyn",
+    "email": "support@atlyn.example"
+  },
+  "assets": {
+    "icon": "assets/icon.png"
+  },
+  "style": "style/visual.less",
+  "capabilities": "capabilities.json",
+  "dependencies": null
+}

@@ -1,0 +1,34 @@
+{
+  "name": "atlyn-scatter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Certification-first explainable quadrant scatter visual for Power BI",
+  "main": "dist/visual.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build:test && node --test dist-tests/tests/*.test.js",
+    "build:test": "tsc -p tsconfig.test.json",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "package": "npm run build && pbiviz package",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true}); require('fs').rmSync('dist-tests',{recursive:true,force:true})\""
+  },
+  "dependencies": {
+    "powerbi-visuals-api": "^5.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/parser": "^8.29.0",
+    "eslint": "^9.39.1",
+    "globals": "^15.14.0",
+    "powerbi-visuals-tools": "^7.2.1",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
+  }
+}

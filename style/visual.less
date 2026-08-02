@@ -1,0 +1,53 @@
+.atlyn-scatter {
+  font-family: "Segoe UI", sans-serif;
+  color: #252423;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.atlyn-scatter__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.atlyn-scatter__message {
+  font-size: 13px;
+  padding: 16px;
+}
+
+.atlyn-scatter__semantic-table {
+  border-collapse: collapse;
+  font-size: 11px;
+  max-height: 180px;
+  overflow: auto;
+  width: 100%;
+}
+
+.atlyn-scatter__semantic-table caption {
+  font-weight: 600;
+  text-align: start;
+}
+
+.atlyn-scatter__semantic-table th,
+.atlyn-scatter__semantic-table td {
+  padding: 2px 4px;
+  text-align: start;
+}
+
+.atlyn-scatter__semantic-table--visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.atlyn-scatter__point:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
