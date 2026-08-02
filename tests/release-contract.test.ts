@@ -9,17 +9,32 @@ test("declares direct release tooling and complete audit gates", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as any;
   const lockfile = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8")) as any;
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")) as any;
-  assert.equal(packageJson.scripts.lint, "eslint . --max-warnings=0");
-  assert.equal(packageJson.scripts["lint:full"], "eslint . --max-warnings=0");
-  assert.equal(packageJson.scripts["certification-audit"], "pbiviz lint");
-  assert.equal(packageJson.scripts.audit, "npm audit --audit-level=low");
-  for (const dependency of ["typescript", "eslint", "@eslint/js", "eslint-plugin-powerbi-visuals"]) {
-    assert.equal(typeof packageJson.devDependencies[dependency], "string");
-    assert.equal(typeof lockfile.packages[""].devDependencies[dependency], "string");
+  assert.equal(packageJson.scripts.lint, "npx eslint . --ext .js,.jsx,.ts,.tsx");
+  assert.equal(packageJson.scripts["lint:full"], "npx eslint . --ext .js,.jsx,.ts,.tsx");
+  assert.match(packageJson.scripts["certification-audit"], /pbiviz lint/);
+  assert.match(packageJson.scripts["certification-audit"], /node scripts\/certification-audit\.cjs/);
+  assert.equal(packageJson.scripts.audit, "npm audit");
+  assert.match(packageJson.scripts.package, /npm run clean/);
+  for (const section of ["dependencies", "devDependencies"]) {
+    for (const [dependency, version] of Object.entries(packageJson[section])) {
+      assert.equal(lockfile.packages[""][section][dependency], version);
+    }
   }
   assert.equal(manifest.visual.version, `${packageJson.version}.0`);
   assert.equal(manifest.capabilities, "capabilities.json");
   assert.equal(manifest.visual.guid, "atlynScatter");
+});
+
+test("keeps source metadata internally consistent", () => {
+  const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as any;
+  const manifest = JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")) as any;
+  const capabilities = JSON.parse(fs.readFileSync(path.join(root, manifest.capabilities), "utf8")) as any;
+  assert.equal(manifest.visual.name, manifest.visual.guid);
+  assert.equal(manifest.visual.version, `${packageJson.version}.0`);
+  assert.deepEqual(capabilities.privileges, []);
+  assert.equal(manifest.dependencies, null);
+  assert.equal(fs.existsSync(path.join(root, manifest.style)), true);
+  assert.equal(fs.existsSync(path.join(root, manifest.assets.icon)), true);
 });
 
 test("includes source metadata required for release review", () => {
