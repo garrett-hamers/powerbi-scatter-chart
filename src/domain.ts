@@ -34,6 +34,8 @@ export interface ThresholdSettings {
   xBenchmark?: number;
   yBenchmark?: number;
   maxPoints?: number;
+  hasHighlights?: boolean;
+  partialData?: boolean;
 }
 
 export interface Threshold {
@@ -71,9 +73,12 @@ export interface ScatterModel {
   validPoints: ValidPoint[];
   invalidRows: number;
   receivedCount: number;
+  analyzedCount: number;
   validCount: number;
   renderedCount: number;
   reduced: boolean;
+  partialData: boolean;
+  hasHighlights: boolean;
   xThreshold: Threshold;
   yThreshold: Threshold;
   counts: QuadrantCounts;
@@ -85,6 +90,14 @@ export const DEFAULT_MAX_POINTS = 10000;
 
 export function finiteNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+export function isHighlightedValue(value: unknown): boolean {
+  return value !== null && value !== undefined;
+}
+
+export function hasHighlightValues(highlights: readonly unknown[] | undefined): boolean {
+  return highlights?.some(isHighlightedValue) ?? false;
 }
 
 function median(values: number[]): number {
@@ -219,14 +232,18 @@ export function buildScatterModel(rawPoints: readonly RawPoint[], settings: Thre
   }
   const maxPoints = settings.maxPoints ?? DEFAULT_MAX_POINTS;
   const points = classified.slice(0, maxPoints);
+  const hasHighlights = settings.hasHighlights ?? rawPoints.some((point) => point.highlighted === true);
   return {
     points,
     validPoints,
     invalidRows,
     receivedCount: rawPoints.length,
+    analyzedCount: validPoints.length,
     validCount: validPoints.length,
     renderedCount: points.length,
     reduced: validPoints.length > points.length,
+    partialData: settings.partialData ?? false,
+    hasHighlights,
     xThreshold,
     yThreshold,
     counts,

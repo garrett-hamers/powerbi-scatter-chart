@@ -4,37 +4,44 @@
     {
       "name": "Category",
       "kind": "Grouping",
-      "displayName": "Category"
+      "displayName": "Category",
+      "displayNameKey": "Role_Category"
     },
     {
       "name": "X",
       "kind": "Measure",
-      "displayName": "X measure"
+      "displayName": "X measure",
+      "displayNameKey": "Role_X"
     },
     {
       "name": "Y",
       "kind": "Measure",
-      "displayName": "Y measure"
+      "displayName": "Y measure",
+      "displayNameKey": "Role_Y"
     },
     {
       "name": "Series",
       "kind": "Grouping",
-      "displayName": "Series"
+      "displayName": "Series",
+      "displayNameKey": "Role_Series"
     },
     {
       "name": "Size",
       "kind": "Measure",
-      "displayName": "Bubble size"
+      "displayName": "Bubble size",
+      "displayNameKey": "Role_Size"
     },
     {
       "name": "Gradient",
       "kind": "Measure",
-      "displayName": "Gradient"
+      "displayName": "Gradient",
+      "displayNameKey": "Role_Gradient"
     },
     {
       "name": "Tooltips",
       "kind": "GroupingOrMeasure",
-      "displayName": "Tooltips"
+      "displayName": "Tooltips",
+      "displayNameKey": "Role_Tooltips"
     }
   ],
   "dataViewMappings": [
@@ -76,38 +83,36 @@
           }
         },
         "values": {
-          "select": [
-            {
-              "for": {
-                "in": "X"
+          "group": {
+            "by": "Series",
+            "select": [
+              {
+                "for": {
+                  "in": "X"
+                }
+              },
+              {
+                "for": {
+                  "in": "Y"
+                }
+              },
+              {
+                "for": {
+                  "in": "Size"
+                }
+              },
+              {
+                "for": {
+                  "in": "Gradient"
+                }
+              },
+              {
+                "for": {
+                  "in": "Tooltips"
+                }
               }
-            },
-            {
-              "for": {
-                "in": "Y"
-              }
-            },
-            {
-              "for": {
-                "in": "Series"
-              }
-            },
-            {
-              "for": {
-                "in": "Size"
-              }
-            },
-            {
-              "for": {
-                "in": "Gradient"
-              }
-            },
-            {
-              "for": {
-                "in": "Tooltips"
-              }
-            }
-          ]
+            ]
+          }
         }
       }
     }
@@ -115,7 +120,7 @@
   "supportsHighlight": true,
   "supportsMultiVisualSelection": true,
   "supportsKeyboardFocus": true,
-  "supportsLandingPage": true,
+  "supportsEmptyDataView": true,
   "tooltips": {
     "supportedTypes": {
       "default": true,
@@ -125,93 +130,206 @@
   "objects": {
     "quadrants": {
       "displayName": "Quadrant analysis",
+      "displayNameKey": "Format_Quadrants",
       "properties": {
         "xThresholdMode": {
           "displayName": "X threshold mode",
+          "displayNameKey": "Format_XThresholdMode",
           "type": {
             "enumeration": [
               {
                 "value": "median",
-                "displayName": "Median"
+                "displayName": "Median",
+                "displayNameKey": "Threshold_median"
               },
               {
                 "value": "mean",
-                "displayName": "Mean"
+                "displayName": "Mean",
+                "displayNameKey": "Threshold_mean"
               },
               {
                 "value": "zero",
-                "displayName": "Zero"
+                "displayName": "Zero",
+                "displayNameKey": "Threshold_zero"
               },
               {
                 "value": "fixed",
-                "displayName": "Fixed"
+                "displayName": "Fixed",
+                "displayNameKey": "Threshold_fixed"
               },
               {
                 "value": "benchmark",
-                "displayName": "Benchmark"
+                "displayName": "Benchmark",
+                "displayNameKey": "Threshold_benchmark"
               }
             ]
           }
         },
         "yThresholdMode": {
           "displayName": "Y threshold mode",
+          "displayNameKey": "Format_YThresholdMode",
           "type": {
             "enumeration": [
               {
                 "value": "median",
-                "displayName": "Median"
+                "displayName": "Median",
+                "displayNameKey": "Threshold_median"
               },
               {
                 "value": "mean",
-                "displayName": "Mean"
+                "displayName": "Mean",
+                "displayNameKey": "Threshold_mean"
               },
               {
                 "value": "zero",
-                "displayName": "Zero"
+                "displayName": "Zero",
+                "displayNameKey": "Threshold_zero"
               },
               {
                 "value": "fixed",
-                "displayName": "Fixed"
+                "displayName": "Fixed",
+                "displayNameKey": "Threshold_fixed"
               },
               {
                 "value": "benchmark",
-                "displayName": "Benchmark"
+                "displayName": "Benchmark",
+                "displayNameKey": "Threshold_benchmark"
               }
             ]
           }
         },
         "xFixed": {
           "displayName": "Fixed X value",
+          "displayNameKey": "Format_XFixed",
           "type": {
             "numeric": true
           }
         },
         "yFixed": {
           "displayName": "Fixed Y value",
+          "displayNameKey": "Format_YFixed",
           "type": {
             "numeric": true
           }
         },
         "xBenchmark": {
           "displayName": "Benchmark X value",
+          "displayNameKey": "Format_XBenchmark",
           "type": {
             "numeric": true
           }
         },
         "yBenchmark": {
           "displayName": "Benchmark Y value",
+          "displayNameKey": "Format_YBenchmark",
           "type": {
             "numeric": true
           }
         },
         "showRegression": {
           "displayName": "Show regression",
+          "displayNameKey": "Format_ShowRegression",
           "type": {
             "bool": true
           }
         },
         "showSemanticTable": {
           "displayName": "Show accessible table",
+          "displayNameKey": "Format_ShowSemanticTable",
+          "type": {
+            "bool": true
+          }
+        },
+        "showQuadrants": {
+          "displayName": "Show quadrant fills",
+          "displayNameKey": "Format_ShowQuadrants",
+          "type": {
+            "bool": true
+          }
+        },
+        "showThresholdLabels": {
+          "displayName": "Show threshold labels",
+          "displayNameKey": "Format_ShowThresholdLabels",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "axes": {
+      "displayName": "Axes",
+      "displayNameKey": "Format_Axes",
+      "properties": {
+        "showAxes": {
+          "displayName": "Show axes",
+          "displayNameKey": "Format_ShowAxes",
+          "type": {
+            "bool": true
+          }
+        },
+        "showAxisLabels": {
+          "displayName": "Show axis labels",
+          "displayNameKey": "Format_ShowAxisLabels",
+          "type": {
+            "bool": true
+          }
+        }
+      }
+    },
+    "markers": {
+      "displayName": "Markers",
+      "displayNameKey": "Format_Markers",
+      "properties": {
+        "minMarkerSize": {
+          "displayName": "Minimum marker size",
+          "displayNameKey": "Format_MinMarkerSize",
+          "type": {
+            "numeric": true
+          }
+        },
+        "maxMarkerSize": {
+          "displayName": "Maximum marker size",
+          "displayNameKey": "Format_MaxMarkerSize",
+          "type": {
+            "numeric": true
+          }
+        },
+        "markerOpacity": {
+          "displayName": "Marker opacity",
+          "displayNameKey": "Format_MarkerOpacity",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "labels": {
+      "displayName": "Labels",
+      "displayNameKey": "Format_Labels",
+      "properties": {
+        "showLabels": {
+          "displayName": "Show point labels",
+          "displayNameKey": "Format_ShowLabels",
+          "type": {
+            "bool": true
+          }
+        },
+        "labelDensity": {
+          "displayName": "Label density",
+          "displayNameKey": "Format_LabelDensity",
+          "type": {
+            "numeric": true
+          }
+        }
+      }
+    },
+    "legend": {
+      "displayName": "Legend",
+      "displayNameKey": "Format_Legend",
+      "properties": {
+        "showLegend": {
+          "displayName": "Show legend",
+          "displayNameKey": "Format_ShowLegend",
           "type": {
             "bool": true
           }

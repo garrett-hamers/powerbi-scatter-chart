@@ -22,6 +22,30 @@ test("declares bounded categorical reduction and the complete optional role cont
   const capabilities = JSON.parse(fs.readFileSync(path.join(root, "capabilities.json"), "utf8")) as any;
   const mapping = capabilities.dataViewMappings[0];
   assert.equal(mapping.categorical.categories.dataReductionAlgorithm.window.count, 10000);
-  const selectedRoles = mapping.categorical.values.select.map((item: any) => item.for.in);
-  assert.deepEqual(selectedRoles, ["X", "Y", "Series", "Size", "Gradient", "Tooltips"]);
+  assert.equal(mapping.categorical.values.group.by, "Series");
+  const selectedRoles = mapping.categorical.values.group.select.map((item: any) => item.for.in);
+  assert.deepEqual(selectedRoles, ["X", "Y", "Size", "Gradient", "Tooltips"]);
+  assert.equal(capabilities.supportsEmptyDataView, true);
+  assert.equal("supportsLandingPage" in capabilities, false);
+});
+
+test("keeps formatting, localization, and privilege metadata aligned", () => {
+  const capabilities = JSON.parse(fs.readFileSync(path.join(root, "capabilities.json"), "utf8")) as any;
+  const resources = JSON.parse(fs.readFileSync(
+    path.join(root, "stringResources", "en-US", "resources.resjson"),
+    "utf8"
+  )) as Record<string, string>;
+  assert.deepEqual(capabilities.privileges, []);
+  for (const objectName of ["quadrants", "axes", "markers", "labels", "legend"]) {
+    assert.ok(capabilities.objects[objectName]);
+    assert.ok(capabilities.objects[objectName].displayNameKey);
+    for (const property of Object.values(capabilities.objects[objectName].properties) as any[]) {
+      assert.ok(property.displayNameKey);
+      assert.equal(typeof resources[property.displayNameKey], "string");
+    }
+  }
+  for (const role of capabilities.dataRoles) {
+    assert.equal(typeof resources[role.displayNameKey], "string");
+  }
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")).stringResources, ["stringResources"]);
 });
