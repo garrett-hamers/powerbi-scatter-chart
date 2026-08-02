@@ -18,21 +18,19 @@ npm run typecheck
 npm run lint:full
 npm run build
 npm run package
+npm run reproducibility-audit
 npm run certification-audit
 npm run audit
 ```
 
 `npm run certification-audit` starts from a clean output directory, runs the complete automated
-release gate, and verifies source metadata against the freshly generated package. The generated
-package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Package metadata is sourced from
-`pbiviz.json` and `capabilities.json`; stale PBIVIZ files are rejected. `npm run release-manifest`
-writes `dist/release-manifest.json` with the source commit, exact package filename, byte size, and
-SHA-256.
-
-PBIVIZ files are ZIP archives. The packaging step normalizes entry order, DOS timestamps,
-DEFLATE compression, and platform metadata before hashing, so repeated clean builds from the
-same source are expected to have the same SHA-256. The release manifest is the immutable-artifact
-record: never overwrite a package or manifest at an existing versioned Blob/AppSource location.
+release gate, including two clean package runs with byte-for-byte and SHA-256 equality. The
+generated package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Packaging normalizes ZIP
+entry order, timestamps, permissions, and compression before an atomic replacement. Package
+metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are rejected.
+`npm run release-manifest` writes `dist/release-manifest.json` with the source commit, exact
+package filename, byte size, and SHA-256. The release manifest is the immutable-artifact record:
+never overwrite a package or manifest at an existing versioned location.
 
 The categorical data window is bounded at 10,000 rows. The visual does not request more data
 from a segmented host response: it computes thresholds, quadrant counts, and regression over all
