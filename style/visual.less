@@ -5,6 +5,12 @@
   position: relative;
   width: 100%;
   height: 100%;
+  touch-action: pan-y;
+  direction: ltr;
+}
+
+.atlyn-scatter[dir="rtl"] {
+  direction: rtl;
 }
 
 .atlyn-scatter__svg {
@@ -16,6 +22,7 @@
 .atlyn-scatter__message {
   font-size: 13px;
   padding: 16px;
+  text-align: start;
 }
 
 .atlyn-scatter__semantic-table {
@@ -50,4 +57,14 @@
 .atlyn-scatter__point:focus {
   outline: 2px solid currentColor;
   outline-offset: 2px;
+}
+
+.atlyn-scatter__point--selected {
+  stroke-width: 3px;
+}
+
+.atlyn-scatter[data-reduced-motion="true"] *,
+.atlyn-scatter [data-reduced-motion="true"] * {
+  animation: none !important;
+  transition: none !important;
 }

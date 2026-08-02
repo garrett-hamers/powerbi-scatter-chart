@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildScatterModel, calculateRegression } from "../src/domain";
+import {
+  buildScatterModel,
+  calculateRegression,
+  hasHighlightValues,
+  isHighlightedValue
+} from "../src/domain";
 
 test("validates numeric X and Y and classifies inclusive boundaries", () => {
   const model = buildScatterModel([
@@ -35,6 +40,48 @@ test("computes visible mean and median provenance", () => {
   assert.equal(mean.yThreshold.value, 3);
   assert.match(mean.xThreshold.provenance, /mean of 2/);
   assert.match(mean.yThreshold.provenance, /median of 2/);
+});
+
+test("keeps threshold provenance explainable for zero, fixed, and benchmark modes", () => {
+  const points = [
+    { category: "a", x: -2, y: 4 },
+    { category: "b", x: 2, y: 8 }
+  ];
+  const zero = buildScatterModel(points, { xMode: "zero", yMode: "zero" });
+  assert.equal(zero.xThreshold.value, 0);
+  assert.match(zero.xThreshold.provenance, /zero/);
+
+  const fixed = buildScatterModel(points, { xMode: "fixed", yMode: "fixed", xFixed: 1.5, yFixed: 6.5 });
+  assert.equal(fixed.xThreshold.value, 1.5);
+  assert.equal(fixed.yThreshold.value, 6.5);
+  assert.match(fixed.xThreshold.provenance, /fixed value/);
+
+  const benchmark = buildScatterModel(points, {
+    xMode: "benchmark",
+    yMode: "benchmark",
+    xBenchmark: -1,
+    yBenchmark: 7
+  });
+  assert.equal(benchmark.xThreshold.value, -1);
+  assert.equal(benchmark.yThreshold.value, 7);
+  assert.match(benchmark.yThreshold.provenance, /benchmark/);
+});
+
+test("treats null highlights as unhighlighted while preserving zero and false values", () => {
+  assert.equal(isHighlightedValue(null), false);
+  assert.equal(isHighlightedValue(undefined), false);
+  assert.equal(isHighlightedValue(0), true);
+  assert.equal(isHighlightedValue(false), true);
+  assert.equal(hasHighlightValues([null, undefined, 0]), true);
+  assert.equal(hasHighlightValues([null, undefined]), false);
+
+  const model = buildScatterModel([
+    { category: "unhighlighted", x: 1, y: 1, highlighted: false },
+    { category: "zero-highlight", x: 2, y: 2, highlighted: true }
+  ], { hasHighlights: true });
+  assert.equal(model.hasHighlights, true);
+  assert.equal(model.points[0].highlighted, false);
+  assert.equal(model.points[1].highlighted, true);
 });
 
 test("computes explicit OLS equation and R2", () => {
@@ -72,4 +119,20 @@ test("bounds rendering and discloses reduction while retaining all visible stati
   assert.equal(model.reduced, true);
   assert.equal(model.regression.n, 10001);
   assert.equal(model.counts["upper-right"] + model.counts["upper-left"] + model.counts["lower-left"] + model.counts["lower-right"], 10001);
+});
+
+test("separates received, analyzed, and rendered counts for invalid and partial data", () => {
+  const model = buildScatterModel([
+    { category: "valid-1", x: 1, y: 1 },
+    { category: "invalid", x: "1", y: 2 },
+    { category: "valid-2", x: 2, y: 2 }
+  ], { maxPoints: 1, partialData: true });
+  assert.equal(model.receivedCount, 3);
+  assert.equal(model.analyzedCount, 2);
+  assert.equal(model.validCount, 2);
+  assert.equal(model.renderedCount, 1);
+  assert.equal(model.invalidRows, 1);
+  assert.equal(model.reduced, true);
+  assert.equal(model.partialData, true);
+  assert.equal(model.regression.n, 2);
 });

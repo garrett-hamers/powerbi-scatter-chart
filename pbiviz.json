@@ -17,6 +17,9 @@
   "assets": {
     "icon": "assets/icon.png"
   },
+  "stringResources": [
+    "stringResources"
+  ],
   "style": "style/visual.less",
   "capabilities": "capabilities.json",
   "dependencies": null

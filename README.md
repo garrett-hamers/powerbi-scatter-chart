@@ -23,4 +23,9 @@ npm audit
 The generated package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Package metadata is
 sourced from `pbiviz.json` and `capabilities.json`.
 
+The categorical data window is bounded at 10,000 rows and the visual does not request more
+data. It computes thresholds, quadrant counts, and regression over all rows received by the
+visual, renders the bounded sample, and discloses received, analyzed, and rendered counts when
+the host provides a reduced or partial segment.
+
 This repository does not claim Microsoft certification or real Power BI host validation.
