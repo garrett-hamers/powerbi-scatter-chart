@@ -48,6 +48,10 @@ test("uses grouped series identities, complete highlights, and touch context men
   assert.match(source, /emptySelectionId/);
   assert.match(source, /pointerType === "touch"/);
   assert.match(source, /setTimeout\(\(\) => this\.showContextMenu/);
+  assert.match(source, /renderedPointFromEvent/);
+  assert.equal(source.includes("this.addListener(circle"), false);
+  assert.match(source, /tooltipService\.enabled\(\)/);
+  assert.match(source, /tooltipService\.move/);
 });
 
 test("keeps accessibility presentation responsive to host preferences", () => {

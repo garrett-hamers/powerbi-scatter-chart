@@ -9,18 +9,23 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build:test && node --test dist-tests/tests/*.test.js",
     "build:test": "tsc -p tsconfig.test.json",
-    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\"",
+    "lint": "eslint . --max-warnings=0",
+    "lint:full": "eslint . --max-warnings=0",
     "package": "npm run build && pbiviz package",
+    "certification-audit": "pbiviz lint",
+    "audit": "npm audit --audit-level=low",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true}); require('fs').rmSync('dist-tests',{recursive:true,force:true})\""
   },
   "dependencies": {
     "powerbi-visuals-api": "^5.11.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@types/node": "^22.15.0",
     "@typescript-eslint/eslint-plugin": "^8.29.0",
     "@typescript-eslint/parser": "^8.29.0",
     "eslint": "^9.39.1",
+    "eslint-plugin-powerbi-visuals": "^1.1.1",
     "globals": "^15.14.0",
     "powerbi-visuals-tools": "^7.2.1",
     "typescript": "^5.8.3"
