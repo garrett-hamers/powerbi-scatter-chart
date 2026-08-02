@@ -34,6 +34,14 @@ module.exports = [
     }
   },
   {
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node
+      }
+    }
+  },
+  {
     files: ["tests/**/*.ts"],
     rules: {
       "powerbi-visuals/non-literal-fs-path": "off"

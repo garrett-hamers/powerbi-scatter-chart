@@ -22,8 +22,10 @@ npm run certification-audit
 npm run audit
 ```
 
-The generated package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Package metadata is
-sourced from `pbiviz.json` and `capabilities.json`.
+`npm run certification-audit` starts from a clean output directory, runs the complete automated
+release gate, and verifies source metadata against the freshly generated package. The generated
+package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Package metadata is sourced from
+`pbiviz.json` and `capabilities.json`; stale PBIVIZ files are rejected.
 
 The categorical data window is bounded at 10,000 rows. The visual does not request more data
 from a segmented host response: it computes thresholds, quadrant counts, and regression over all

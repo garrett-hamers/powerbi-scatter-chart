@@ -9,11 +9,11 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build:test && node --test dist-tests/tests/*.test.js",
     "build:test": "tsc -p tsconfig.test.json",
-    "lint": "eslint . --max-warnings=0",
-    "lint:full": "eslint . --max-warnings=0",
-    "package": "npm run build && pbiviz package",
-    "certification-audit": "pbiviz lint",
-    "audit": "npm audit --audit-level=low",
+    "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:full": "npx eslint . --ext .js,.jsx,.ts,.tsx",
+    "package": "npm run clean && npm run build && pbiviz package",
+    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run package && pbiviz lint && node scripts/certification-audit.cjs && npm run audit",
+    "audit": "npm audit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true}); require('fs').rmSync('dist-tests',{recursive:true,force:true})\""
   },
   "dependencies": {
