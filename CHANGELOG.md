@@ -1,7 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.0.1.0
 
+- Bumped the visual version from `1.0.0.0` to `1.0.1.0` (`package.json` `1.0.1`). The AppSource
+  submission work below changed the packaged `.pbiviz` contents — a real `assets/icon.png`
+  instead of the 1x1 placeholder, the stylesheet actually reaching the bundle, and corrected
+  `pbiviz.json` metadata — so the built package no longer matches the `1.0.0.0` artifact already
+  distributed from the Atlyn storefront. Two different files must never share one version, so
+  **`1.0.1.0` supersedes the v1.0.0.0 storefront artifact** and is published at its own
+  version-keyed path as `atlynScatter.1.0.1.0.pbiviz`. The GUID (`atlynScatter`) is unchanged.
 - Added the offline AppSource sample report as a Power BI project at
   `samples/AtlynScatterSample/`, generated deterministically by
   `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead
