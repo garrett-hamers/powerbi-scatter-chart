@@ -1,0 +1,17 @@
+# Store every text file with LF, and check it out with LF on every platform.
+#
+# Several release gates hash or byte-compare tracked text files:
+#   * scripts/release-manifest.cjs records the size and SHA-256 of EULA.md and
+#     docs/partner-center-submission.md in dist/release-manifest.json;
+#   * scripts/certification-audit.cjs byte-compares the sample report's embedded
+#     visual resource against the resource in the freshly packaged .pbiviz.
+#
+# Git stores LF, so without eol=lf a Windows checkout writes CRLF and those
+# hashes and comparisons silently disagree with the Linux CI runner - a failure
+# that reproduces only in CI. eol=lf pins the working tree to match the index.
+* text=auto eol=lf
+
+# Binary assets must never be line-ending converted.
+*.png binary
+*.pbiviz binary
+*.pbix binary

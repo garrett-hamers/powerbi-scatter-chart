@@ -18,6 +18,14 @@
   the gate fails if the bytes ever become clock-dependent again. This matters because packages
   are published to immutable, version-keyed paths: one version must mean exactly one SHA-256,
   no matter who builds it.
+- Added `.gitattributes` with `* text=auto eol=lf` so tracked text files are checked out with LF
+  on every platform, and normalised the working tree to match. Git already stored LF, but a
+  Windows checkout wrote CRLF, so `dist/release-manifest.json` recorded different sizes and
+  SHA-256 values for the tracked text files it hashes than the Linux CI runner did — `EULA.md`
+  as 4,072 bytes locally versus 3,982 in CI, and `docs/partner-center-submission.md` as 13,000
+  versus 12,759. The same mismatch would have broken the `scripts/certification-audit.cjs`
+  byte-comparison between the sample report's embedded visual resource and the freshly packaged
+  one on any Windows checkout. PNGs are declared `binary` and are untouched.
 - Added the offline AppSource sample report as a Power BI project at
   `samples/AtlynScatterSample/`, generated deterministically by
   `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead
