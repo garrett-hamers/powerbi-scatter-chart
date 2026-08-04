@@ -8,7 +8,11 @@ const manifest = readJson("pbiviz.json");
 const packageDirectory = path.join(root, "dist");
 const packageName = `${manifest.visual.name}.${manifest.visual.version}.pbiviz`;
 const packagePath = path.join(packageDirectory, packageName);
-const fixedDate = new Date(1980, 0, 1, 0, 0, 0, 0);
+// JSZip encodes ZIP timestamps with the Date's *UTC* getters, so this anchor must be built in
+// UTC. `new Date(1980, 0, 1)` is local midnight, which encodes a different DOS time on every
+// build machine (and a pre-1980, out-of-range DOS date east of UTC), making the package hash
+// depend on the builder's timezone.
+const fixedDate = new Date(Date.UTC(1980, 0, 1, 0, 0, 0, 0));
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));

@@ -9,6 +9,15 @@
   distributed from the Atlyn storefront. Two different files must never share one version, so
   **`1.0.1.0` supersedes the v1.0.0.0 storefront artifact** and is published at its own
   version-keyed path as `atlynScatter.1.0.1.0.pbiviz`. The GUID (`atlynScatter`) is unchanged.
+- Fixed the packaged `.pbiviz` hash depending on the build machine's timezone.
+  `scripts/normalize-pbiviz.cjs` built its "fixed" ZIP timestamp with `new Date(1980, 0, 1)`,
+  which is local midnight, while JSZip encodes timestamps from a `Date`'s UTC getters. The same
+  source therefore produced a different SHA-256 in every timezone offset from UTC — and an
+  out-of-range pre-1980 DOS date east of UTC. The anchor is now `Date.UTC(1980, 0, 1)`, and
+  `npm run reproducibility-audit` packages its two runs under `Etc/GMT+12` and `Etc/GMT-14` so
+  the gate fails if the bytes ever become clock-dependent again. This matters because packages
+  are published to immutable, version-keyed paths: one version must mean exactly one SHA-256,
+  no matter who builds it.
 - Added the offline AppSource sample report as a Power BI project at
   `samples/AtlynScatterSample/`, generated deterministically by
   `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead

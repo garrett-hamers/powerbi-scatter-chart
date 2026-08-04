@@ -14,6 +14,10 @@ const npmCommand = process.platform === "win32" ? process.env.ComSpec : "npm";
 const npmArguments = process.platform === "win32"
   ? ["/d", "/s", "/c", "npm run package"]
   : ["run", "package"];
+// The published artifact lives at an immutable, version-keyed path, so its bytes may not depend
+// on where it was built. Packaging each run under a different timezone (one side of UTC, then the
+// other) proves the normalized ZIP timestamps are genuinely fixed rather than locale-derived.
+const runTimezones = ["Etc/GMT+12", "Etc/GMT-14"];
 
 function readJson(relativePath) {
   return JSON.parse(fs.readFileSync(path.join(root, relativePath), "utf8"));
@@ -37,8 +41,10 @@ function packagePathForRun() {
 }
 
 function runPackage(runNumber) {
+  const timezone = runTimezones[runNumber - 1];
   const result = spawnSync(npmCommand, npmArguments, {
     cwd: root,
+    env: { ...process.env, TZ: timezone },
     stdio: "inherit"
   });
   assert(result.error === undefined, `package run ${runNumber} could not start`);
@@ -56,8 +62,13 @@ try {
   const secondPackage = fs.readFileSync(runPackage(2));
   const firstHash = sha256(firstPackage);
   const secondHash = sha256(secondPackage);
-  assert(firstPackage.equals(secondPackage), `package bytes differ (${firstHash} versus ${secondHash})`);
+  assert(
+    firstPackage.equals(secondPackage),
+    `package bytes differ between TZ=${runTimezones[0]} and TZ=${runTimezones[1]} ` +
+    `(${firstHash} versus ${secondHash})`
+  );
   console.log(`Reproducibility audit passed for ${packageName}`);
+  console.log(`Timezones exercised: ${runTimezones.join(", ")}`);
   console.log(`SHA-256: ${firstHash}`);
 } finally {
   fs.rmSync(temporaryDirectory, { recursive: true, force: true });

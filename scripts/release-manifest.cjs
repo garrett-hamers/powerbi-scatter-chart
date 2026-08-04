@@ -94,7 +94,7 @@ const releaseManifest = {
     partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png")),
     screenshots1366x768: screenshots
   },
-  hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to fixed DOS timestamps, DEFLATE level 9, and DOS platform metadata before hashing."
+  hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to a fixed UTC-anchored DOS timestamp, DEFLATE level 9, and DOS platform metadata before hashing, so the hash does not depend on the build machine's timezone or platform."
 };
 
 fs.writeFileSync(
