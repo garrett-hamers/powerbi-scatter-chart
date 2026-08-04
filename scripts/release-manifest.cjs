@@ -35,13 +35,54 @@ function fileMetadata(relativePath) {
   };
 }
 
+const screenshotDirectory = path.join(root, "assets", "screenshots");
+const screenshots = fs.existsSync(screenshotDirectory)
+  ? fs.readdirSync(screenshotDirectory)
+    .filter((entry) => entry.endsWith(".png"))
+    .sort()
+    .map((entry) => fileMetadata(path.join("assets", "screenshots", entry)))
+    .filter(Boolean)
+  : [];
+
+const sampleReportRoot = path.join("samples", "AtlynScatterSample");
+const sampleReportFiles = [];
+(function walk(relativeDirectory) {
+  const absolute = path.join(root, relativeDirectory);
+  if (!fs.existsSync(absolute)) {
+    return;
+  }
+  for (const entry of fs.readdirSync(absolute).sort()) {
+    const next = path.join(relativeDirectory, entry);
+    if (fs.statSync(path.join(root, next)).isDirectory()) {
+      walk(next);
+    } else {
+      sampleReportFiles.push(fileMetadata(next));
+    }
+  }
+})(sampleReportRoot);
+
 const releaseManifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   visual: {
     guid: manifest.visual.guid,
     name: manifest.visual.name,
     version: manifest.visual.version
+  },
+  submission: {
+    supportUrl: manifest.visual.supportUrl,
+    privacyPolicyUrl: "https://atlyn.io/legal/privacy",
+    authorName: manifest.author.name,
+    authorEmail: manifest.author.email,
+    eula: fileMetadata("EULA.md"),
+    dossier: fileMetadata(path.join("docs", "partner-center-submission.md")),
+    appSourceListing: "Free",
+    sampleReport: {
+      path: sampleReportRoot.split(path.sep).join("/"),
+      format: "PBIP",
+      files: sampleReportFiles.length,
+      pbixStatus: "Convert with a one-time Power BI Desktop refresh and Save as .pbix; no .pbix is committed."
+    }
   },
   package: {
     filename: packageName,
@@ -50,7 +91,8 @@ const releaseManifest = {
   },
   assets: {
     visualIcon: fileMetadata(manifest.assets.icon),
-    partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png"))
+    partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png")),
+    screenshots1366x768: screenshots
   },
   hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to fixed DOS timestamps, DEFLATE level 9, and DOS platform metadata before hashing."
 };

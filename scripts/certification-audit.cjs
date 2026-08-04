@@ -1,5 +1,6 @@
 const fs = require("node:fs");
 const path = require("node:path");
+const JSZip = require("jszip");
 
 const root = path.resolve(__dirname, "..");
 const packageJson = readJson("package.json");
@@ -55,4 +56,50 @@ sameVisualMetadata(manifest.visual, generatedMetadata.visual);
 assert(generatedMetadata.author?.name === manifest.author.name, "generated author differs from source");
 assert(generatedMetadata.author?.email === manifest.author.email, "generated author email differs from source");
 
-console.log(`Certification audit passed for ${packageName}`);
+(async () => {
+  const zip = await JSZip.loadAsync(fs.readFileSync(packagePath));
+  const resourceName = Object.keys(zip.files)
+    .find((entry) => entry.startsWith("resources/") && entry.endsWith(".json"));
+  assert(resourceName !== undefined, "packaged resource descriptor is missing");
+
+  const resource = JSON.parse(await zip.files[resourceName].async("string"));
+  assert(typeof resource.content?.js === "string" && resource.content.js.length > 0, "packaged bundle is empty");
+  assert(
+    typeof resource.content?.css === "string" && resource.content.css.includes(".atlyn-scatter"),
+    "compiled stylesheet is missing from the package; src/visual.ts must import style/visual.less"
+  );
+
+  const iconBase64 = String(resource.content?.iconBase64 ?? "");
+  assert(iconBase64.startsWith("data:image/png;base64,"), "packaged icon is not a base64 PNG data URI");
+  const icon = Buffer.from(iconBase64.slice("data:image/png;base64,".length), "base64");
+  assert(icon.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10])), "packaged icon is not a PNG");
+  assert(
+    icon.readUInt32BE(16) === 20 && icon.readUInt32BE(20) === 20,
+    `packaged icon must be 20x20, received ${icon.readUInt32BE(16)}x${icon.readUInt32BE(20)}`
+  );
+
+  // The AppSource sample report embeds a copy of this exact package so it renders offline.
+  // Byte-compare it here, immediately after packaging, so the copy can never go stale.
+  const embeddedPath = path.join(
+    root,
+    "samples",
+    "AtlynScatterSample",
+    "AtlynScatterSample.Report",
+    "CustomVisuals",
+    manifest.visual.guid,
+    "resources",
+    `${manifest.visual.guid}.pbiviz.json`
+  );
+  assert(fs.existsSync(embeddedPath), "sample report is missing the embedded visual resource");
+  const embedded = fs.readFileSync(embeddedPath, "utf8");
+  const packaged = await zip.files[resourceName].async("string");
+  assert(
+    embedded === packaged,
+    'sample report embeds a stale visual; run "npm run generate-sample-report" after packaging'
+  );
+
+  console.log(`Certification audit passed for ${packageName}`);
+})().catch((error) => {
+  console.error(error.message ?? error);
+  process.exitCode = 1;
+});

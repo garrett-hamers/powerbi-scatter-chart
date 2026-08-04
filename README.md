@@ -29,13 +29,62 @@ release gate, including two clean package runs with byte-for-byte and SHA-256 eq
 generated package is written to `dist/atlynScatter.1.0.0.0.pbiviz`. Packaging normalizes ZIP
 entry order, timestamps, permissions, and compression before an atomic replacement. Package
 metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are rejected.
-`npm run release-manifest` writes `dist/release-manifest.json` with the source commit, exact
-package filename, byte size, and SHA-256. The release manifest is the immutable-artifact record:
-never overwrite a package or manifest at an existing versioned location.
+The audit also opens the generated package and asserts that the bundled script, the compiled
+stylesheet, and a 20x20 PNG icon are all present. `npm run release-manifest` writes
+`dist/release-manifest.json` with the source commit, exact package filename, byte size, SHA-256,
+and the SHA-256 of every publication asset. The release manifest is the immutable-artifact
+record: never overwrite a package or manifest at an existing versioned location.
 
-`npm run publication-audit` verifies publication image assets: `assets/icon.png` must be a real
-non-placeholder source icon and `assets/partner-center-logo-300x300.png` must be a valid 300x300
-PNG for Partner Center submission.
+## AppSource publication
+
+[`docs/partner-center-submission.md`](docs/partner-center-submission.md) records the concrete
+final value of every Microsoft Partner Center submission field, plus the manual steps that
+remain. [`EULA.md`](EULA.md) is the end-user licence agreement for the AppSource listing.
+
+`npm run publication-audit` (also run as part of `npm run certification-audit`) verifies the
+submission surface deterministically:
+
+- `assets/icon.png` is a valid PNG, exactly 20x20, and not a placeholder.
+- `assets/partner-center-logo-300x300.png` is a valid PNG, exactly 300x300.
+- both brand assets match a pixel-for-pixel regeneration by `scripts/generate-brand-assets.cjs`.
+- `assets/screenshots/` holds 1 to 5 PNG files, each exactly 1366x768 and at most 1024 KB.
+- the offline sample report in `samples/` embeds the visual under `CustomVisuals/`, avoids
+  `publicCustomVisuals`, matches the current visual version, and defines its data as a DAX
+  calculated table with no data source.
+- `pbiviz.json` carries every required submission field, a four-part version, an `https://`
+  support URL, and an author email that is not an RFC 2606 reserved domain.
+- `EULA.md` and the submission dossier exist, and the dossier records the `https://` privacy
+  policy URL.
+
+Publication assets are regenerated with dependency-free scripts:
+
+```text
+npm run generate-brand-assets
+npm run package && npm run screenshots
+npm run package && npm run generate-sample-report
+```
+
+`npm run screenshots` renders the **actual built visual** from `dist/*.pbiviz` in headless
+Microsoft Edge or Google Chrome against a mock host and hard-coded offline sample data, then
+captures PNGs at exactly 1366x768. It requires a locally installed Chromium-based browser
+(override the path with `ATLYN_BROWSER`) and fails loudly rather than producing placeholder
+images. This step is local and on demand; CI only validates the committed PNGs.
+
+`npm run generate-sample-report` writes the offline AppSource sample report to
+[`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
+report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(...)` calculated
+table, so the model declares no data source at all, with the built visual embedded under
+`CustomVisuals/` so nothing is fetched from the AppSource store. See
+[`samples/README.md`](samples/README.md) for the one-time Power BI Desktop "Save as .pbix" step.
+No `.pbix` is committed.
+
+## AppSource licensing
+
+The AppSource listing is **Free**. Monetisation happens only through the Atlyn storefront
+subscription at <https://atlyn.io> and is entirely separate from Microsoft AppSource; the visual
+itself performs no licence checks and makes no network requests. Do not configure a paid or
+transactable Partner Center offer. See
+[`docs/partner-center-submission.md`](docs/partner-center-submission.md) for the full field list.
 
 The categorical data window is bounded at 10,000 rows. The visual does not request more data
 from a segmented host response: it computes thresholds, quadrant counts, and regression over all
