@@ -26,6 +26,15 @@
   versus 12,759. The same mismatch would have broken the `scripts/certification-audit.cjs`
   byte-comparison between the sample report's embedded visual resource and the freshly packaged
   one on any Windows checkout. PNGs are declared `binary` and are untouched.
+- Made the Power BI Desktop "Save as .pbix" instructions conditional instead of absolute. The
+  docs asserted "No refresh step is needed" as a guarantee about Desktop's runtime behaviour;
+  they now tell the operator to confirm the visual renders with data, run
+  **Home > Refresh > Schema and data** *only* if a table is empty or Desktop reports "Some of the
+  tables have incomplete or no data", and to stop and investigate rather than enter anything if
+  Desktop ever prompts for credentials — a prompt would mean the model had acquired a data source,
+  which `npm run publication-audit` and `tests/sample-report.test.ts` forbid. Also fixed the
+  release manifest's `pbixStatus`, which contradicted the docs by describing the refresh as
+  mandatory.
 - Added the offline AppSource sample report as a Power BI project at
   `samples/AtlynScatterSample/`, generated deterministically by
   `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead

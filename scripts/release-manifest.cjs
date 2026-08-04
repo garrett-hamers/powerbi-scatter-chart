@@ -81,7 +81,7 @@ const releaseManifest = {
       path: sampleReportRoot.split(path.sep).join("/"),
       format: "PBIP",
       files: sampleReportFiles.length,
-      pbixStatus: "Convert with a one-time Power BI Desktop refresh and Save as .pbix; no .pbix is committed."
+      pbixStatus: "Open the PBIP in Power BI Desktop, confirm the visual renders with data, refresh only if Desktop reports empty or incomplete tables, then Save as .pbix; no .pbix is committed."
     }
   },
   package: {
