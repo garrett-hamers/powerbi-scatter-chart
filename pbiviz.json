@@ -5,14 +5,14 @@
     "guid": "atlynScatter",
     "visualClassName": "Visual",
     "version": "1.0.0.0",
-    "description": "Explainable quadrant analysis with accessible scatter plotting and explicit regression.",
-    "supportUrl": "https://github.com/garrett-hamers/powerbi-scatter-chart",
+    "description": "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader.",
+    "supportUrl": "https://atlyn.io/contact",
     "gitHubUrl": "https://github.com/garrett-hamers/powerbi-scatter-chart"
   },
   "apiVersion": "5.11.0",
   "author": {
     "name": "Atlyn",
-    "email": "support@atlyn.example"
+    "email": "atlyn.help@gmail.com"
   },
   "assets": {
     "icon": "assets/icon.png"

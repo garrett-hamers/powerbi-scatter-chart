@@ -13,8 +13,10 @@
     "lint:full": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "package": "npm run clean && npm run build && pbiviz package && node scripts/normalize-pbiviz.cjs",
     "reproducibility-audit": "node scripts/reproducibility-audit.cjs",
-    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run release-manifest && npm run audit",
+    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run publication-audit && npm run release-manifest && npm run audit",
     "publication-audit": "node scripts/publication-audit.cjs",
+    "generate-brand-assets": "node scripts/generate-brand-assets.cjs",
+    "screenshots": "node scripts/generate-screenshots.cjs",
     "release-manifest": "node scripts/release-manifest.cjs",
     "audit": "npm audit",
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true}); require('fs').rmSync('dist-tests',{recursive:true,force:true})\""
@@ -39,6 +41,7 @@
     "node": ">=18"
   },
   "overrides": {
+    "hono": "^4.12.34",
     "uuid": "^11.1.1"
   }
 }

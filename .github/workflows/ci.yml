@@ -25,6 +25,7 @@ jobs:
       - run: npm run build
       - run: npm run package
       - run: npm run certification-audit
+      - run: npm run publication-audit
       - run: npm run audit
       - run: npm run release-manifest
       - uses: actions/upload-artifact@v4

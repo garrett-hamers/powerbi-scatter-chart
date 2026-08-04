@@ -35,13 +35,30 @@ function fileMetadata(relativePath) {
   };
 }
 
+const screenshotDirectory = path.join(root, "assets", "screenshots");
+const screenshots = fs.existsSync(screenshotDirectory)
+  ? fs.readdirSync(screenshotDirectory)
+    .filter((entry) => entry.endsWith(".png"))
+    .sort()
+    .map((entry) => fileMetadata(path.join("assets", "screenshots", entry)))
+    .filter(Boolean)
+  : [];
+
 const releaseManifest = {
-  schemaVersion: 2,
+  schemaVersion: 3,
   sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   visual: {
     guid: manifest.visual.guid,
     name: manifest.visual.name,
     version: manifest.visual.version
+  },
+  submission: {
+    supportUrl: manifest.visual.supportUrl,
+    privacyPolicyUrl: "https://atlyn.io/legal/privacy",
+    authorName: manifest.author.name,
+    authorEmail: manifest.author.email,
+    eula: fileMetadata("EULA.md"),
+    dossier: fileMetadata(path.join("docs", "partner-center-submission.md"))
   },
   package: {
     filename: packageName,
@@ -50,7 +67,8 @@ const releaseManifest = {
   },
   assets: {
     visualIcon: fileMetadata(manifest.assets.icon),
-    partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png"))
+    partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png")),
+    screenshots1366x768: screenshots
   },
   hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to fixed DOS timestamps, DEFLATE level 9, and DOS platform metadata before hashing."
 };
