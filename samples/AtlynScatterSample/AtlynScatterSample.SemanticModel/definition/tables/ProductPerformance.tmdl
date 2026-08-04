@@ -1,0 +1,94 @@
+table ProductPerformance
+	lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d10
+
+	column Product
+		dataType: string
+		lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d11
+		summarizeBy: none
+		sourceColumn: Product
+
+		annotation SummarizationSetBy = Automatic
+
+	column Region
+		dataType: string
+		lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d12
+		summarizeBy: none
+		sourceColumn: Region
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Gross margin %'
+		dataType: double
+		lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d13
+		summarizeBy: average
+		sourceColumn: Gross margin %
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Revenue growth %'
+		dataType: double
+		lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d14
+		summarizeBy: average
+		sourceColumn: Revenue growth %
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Revenue
+		dataType: double
+		lineageTag: 6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d15
+		summarizeBy: sum
+		sourceColumn: Revenue
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition ProductPerformance = m
+		mode: import
+		source =
+				let
+				    Source = #table(
+				        type table [Product = text, Region = text, #"Gross margin %" = number, #"Revenue growth %" = number, Revenue = number],
+				        {
+				            {"Aurora Analytics", "Asia Pacific", 27.9, 31.6, 2900000},
+				            {"Beacon Reporting", "Asia Pacific", 21.3, 12.8, 3100000},
+				            {"Cascade Data Prep", "Asia Pacific", 12.4, -4.7, 900000},
+				            {"Compass Planning", "Asia Pacific", 30.7, 19.4, 3900000},
+				            {"Everest Governance", "Asia Pacific", 42.8, 34.2, 2200000},
+				            {"Foundry Connectors", "Asia Pacific", 25.6, 15.1, 1800000},
+				            {"Harbor Streaming", "Asia Pacific", 35.1, 26.8, 3400000},
+				            {"Juniper Alerts", "Asia Pacific", 16.9, -1.3, 1100000},
+				            {"Aurora Analytics", "Europe", 38.4, 14.6, 6900000},
+				            {"Beacon Reporting", "Europe", 24.7, 4.1, 4300000},
+				            {"Cascade Data Prep", "Europe", 19.8, -6.5, 1900000},
+				            {"Compass Planning", "Europe", 34.2, 9.8, 5100000},
+				            {"Everest Governance", "Europe", 47.1, 21.9, 2800000},
+				            {"Foundry Connectors", "Europe", 29.3, 7.4, 2600000},
+				            {"Harbor Streaming", "Europe", 31.5, 16.2, 3700000},
+				            {"Juniper Alerts", "Europe", 15.6, -12.1, 1200000},
+				            {"Aurora Analytics", "Latin America", 23.4, 22.7, 1400000},
+				            {"Beacon Reporting", "Latin America", 17.8, 8.3, 1700000},
+				            {"Cascade Data Prep", "Latin America", 14.2, -8.9, 800000},
+				            {"Compass Planning", "Latin America", 26.8, 13.5, 2000000},
+				            {"Everest Governance", "Latin America", 39.4, 29.1, 1300000},
+				            {"Foundry Connectors", "Latin America", 20.4, 3.6, 1150000},
+				            {"Harbor Streaming", "Latin America", 28.2, 20.6, 1600000},
+				            {"Juniper Alerts", "Latin America", 11.7, -14.2, 600000},
+				            {"Aurora Analytics", "North America", 41.2, 18.4, 8200000},
+				            {"Beacon Reporting", "North America", 28.5, 6.2, 5600000},
+				            {"Cascade Data Prep", "North America", 22.4, -3.8, 2400000},
+				            {"Compass Planning", "North America", 36.9, 11.7, 6300000},
+				            {"Everest Governance", "North America", 44.6, 27.3, 3300000},
+				            {"Foundry Connectors", "North America", 26.1, 2.9, 2100000},
+				            {"Harbor Streaming", "North America", 33.8, 24.1, 4100000},
+				            {"Juniper Alerts", "North America", 18.2, -9.4, 1500000}
+				        }
+				    )
+				in
+				    Source
+
+	annotation PBI_ResultType = Table

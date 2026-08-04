@@ -228,9 +228,85 @@ function auditSubmissionDocuments() {
   }
 }
 
+function auditSampleReport() {
+  const manifestJson = JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8"));
+  const guid = manifestJson.visual.guid;
+  const sampleRoot = path.join(root, "samples", "AtlynScatterSample");
+  const reportRoot = path.join(sampleRoot, "AtlynScatterSample.Report");
+  const tablePath = path.join(
+    sampleRoot,
+    "AtlynScatterSample.SemanticModel",
+    "definition",
+    "tables",
+    "ProductPerformance.tmdl"
+  );
+
+  const required = [
+    path.join(sampleRoot, "AtlynScatterSample.pbip"),
+    path.join(reportRoot, "definition", "report.json"),
+    path.join(reportRoot, "definition", "pages", "pages.json"),
+    path.join(reportRoot, "CustomVisuals", guid, "package.json"),
+    path.join(reportRoot, "CustomVisuals", guid, "resources", `${guid}.pbiviz.json`),
+    tablePath
+  ];
+  for (const filePath of required) {
+    if (!fs.existsSync(filePath)) {
+      blockers.push(`Sample report is incomplete, missing ${relative(filePath)}.`);
+      return null;
+    }
+  }
+
+  const report = JSON.parse(fs.readFileSync(path.join(reportRoot, "definition", "report.json"), "utf8"));
+  if ("publicCustomVisuals" in report) {
+    blockers.push("Sample report uses publicCustomVisuals, which resolves from AppSource and is not offline.");
+  }
+  const custom = (report.resourcePackages ?? []).find((entry) => entry.type === "CustomVisual");
+  if (!custom || custom.name !== guid) {
+    blockers.push(`Sample report must embed the visual through a CustomVisual resource package named ${guid}.`);
+  }
+
+  const embedded = JSON.parse(
+    fs.readFileSync(path.join(reportRoot, "CustomVisuals", guid, "resources", `${guid}.pbiviz.json`), "utf8")
+  );
+  if (embedded.visual?.guid !== guid) {
+    blockers.push("Sample report embeds a different visual GUID than pbiviz.json.");
+  }
+  if (embedded.visual?.version !== manifestJson.visual.version) {
+    blockers.push(
+      `Sample report embeds visual version ${embedded.visual?.version}, expected ${manifestJson.visual.version}. ` +
+      'Run "npm run package" then "npm run generate-sample-report".'
+    );
+  }
+
+  const tmdl = fs.readFileSync(tablePath, "utf8");
+  if (!tmdl.includes("#table(")) {
+    blockers.push("Sample report data must come from an inline table literal so it works offline.");
+  }
+  for (const connector of [
+    "Sql.Database",
+    "Web.Contents",
+    "File.Contents",
+    "Excel.Workbook",
+    "Csv.Document",
+    "OData.Feed",
+    "Odbc.DataSource",
+    "SharePoint.",
+    "AzureStorage.",
+    "http://",
+    "https://"
+  ]) {
+    if (tmdl.includes(connector)) {
+      blockers.push(`Sample report data source uses ${connector}, which requires an external connection.`);
+    }
+  }
+
+  return { relativePath: relative(sampleRoot), embeddedVersion: embedded.visual?.version };
+}
+
 const manifest = auditManifest();
 const brandAssets = buildAssets().map(auditBrandAsset).filter(Boolean);
 const screenshots = auditScreenshots();
+const sampleReport = auditSampleReport();
 auditSubmissionDocuments();
 
 if (blockers.length > 0) {
@@ -241,6 +317,7 @@ console.log("Publication audit passed.");
 for (const asset of [...brandAssets, ...screenshots]) {
   console.log(`  ${asset.relativePath} ${asset.width}x${asset.height} ${asset.bytes} bytes sha256=${asset.sha256}`);
 }
+console.log(`  sample report ${sampleReport.relativePath} embedding visual ${sampleReport.embeddedVersion}`);
 console.log(`  support URL ${manifest.visual.supportUrl}`);
 console.log(`  privacy policy URL ${PRIVACY_POLICY_URL}`);
 console.log(`  author ${manifest.author.name} <${manifest.author.email}>`);

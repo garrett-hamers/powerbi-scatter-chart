@@ -48,6 +48,9 @@ submission surface deterministically:
 - `assets/partner-center-logo-300x300.png` is a valid PNG, exactly 300x300.
 - both brand assets match a pixel-for-pixel regeneration by `scripts/generate-brand-assets.cjs`.
 - `assets/screenshots/` holds 1 to 5 PNG files, each exactly 1366x768 and at most 1024 KB.
+- the offline sample report in `samples/` embeds the visual under `CustomVisuals/`, avoids
+  `publicCustomVisuals`, matches the current visual version, and sources its data only from an
+  inline `#table(...)` literal.
 - `pbiviz.json` carries every required submission field, a four-part version, an `https://`
   support URL, and an author email that is not an RFC 2606 reserved domain.
 - `EULA.md` and the submission dossier exist, and the dossier records the `https://` privacy
@@ -58,6 +61,7 @@ Publication assets are regenerated with dependency-free scripts:
 ```text
 npm run generate-brand-assets
 npm run package && npm run screenshots
+npm run package && npm run generate-sample-report
 ```
 
 `npm run screenshots` renders the **actual built visual** from `dist/*.pbiviz` in headless
@@ -65,6 +69,21 @@ Microsoft Edge or Google Chrome against a mock host and hard-coded offline sampl
 captures PNGs at exactly 1366x768. It requires a locally installed Chromium-based browser
 (override the path with `ATLYN_BROWSER`) and fails loudly rather than producing placeholder
 images. This step is local and on demand; CI only validates the committed PNGs.
+
+`npm run generate-sample-report` writes the offline AppSource sample report to
+[`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
+report JSON plus a TMDL semantic model whose only data source is an inline `#table(...)` literal,
+with the built visual embedded under `CustomVisuals/` so nothing is fetched from the AppSource
+store. See [`samples/README.md`](samples/README.md) for the one-time Power BI Desktop
+"Save as .pbix" step. No `.pbix` is committed.
+
+## AppSource licensing
+
+The AppSource listing is **Free**. Monetisation happens only through the Atlyn storefront
+subscription at <https://atlyn.io> and is entirely separate from Microsoft AppSource; the visual
+itself performs no licence checks and makes no network requests. Do not configure a paid or
+transactable Partner Center offer. See
+[`docs/partner-center-submission.md`](docs/partner-center-submission.md) for the full field list.
 
 The categorical data window is bounded at 10,000 rows. The visual does not request more data
 from a segmented host response: it computes thresholds, quadrant counts, and regression over all

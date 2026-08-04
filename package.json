@@ -16,6 +16,7 @@
     "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run publication-audit && npm run release-manifest && npm run audit",
     "publication-audit": "node scripts/publication-audit.cjs",
     "generate-brand-assets": "node scripts/generate-brand-assets.cjs",
+    "generate-sample-report": "node scripts/generate-sample-report.cjs",
     "screenshots": "node scripts/generate-screenshots.cjs",
     "release-manifest": "node scripts/release-manifest.cjs",
     "audit": "npm audit",

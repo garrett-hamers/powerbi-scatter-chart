@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+- Added the offline AppSource sample report as a Power BI project at
+  `samples/AtlynScatterSample/`, generated deterministically by
+  `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead
+  of using `publicCustomVisuals`, and sources 32 rows from a single inline `#table(...)` literal,
+  so it renders and refreshes with no network and no credentials. Verified by opening it in Power
+  BI Desktop.
+- Recorded the AppSource listing as **Free** in `docs/partner-center-submission.md`, separate from
+  the Atlyn storefront subscription at atlyn.io.
+- Extracted the offline sample dataset to `scripts/sample-data.cjs` so the listing screenshots and
+  the sample report always show the same numbers.
 - Fixed the visual stylesheet never reaching the PBIVIZ: `src/visual.ts` now imports
   `style/visual.less`, so `content.css` ships in the package and the Segoe UI typography,
   overflow clipping, focus outlines, reduced-motion rules, and the visually-hidden accessible

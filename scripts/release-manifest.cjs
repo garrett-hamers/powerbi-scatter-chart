@@ -44,6 +44,23 @@ const screenshots = fs.existsSync(screenshotDirectory)
     .filter(Boolean)
   : [];
 
+const sampleReportRoot = path.join("samples", "AtlynScatterSample");
+const sampleReportFiles = [];
+(function walk(relativeDirectory) {
+  const absolute = path.join(root, relativeDirectory);
+  if (!fs.existsSync(absolute)) {
+    return;
+  }
+  for (const entry of fs.readdirSync(absolute).sort()) {
+    const next = path.join(relativeDirectory, entry);
+    if (fs.statSync(path.join(root, next)).isDirectory()) {
+      walk(next);
+    } else {
+      sampleReportFiles.push(fileMetadata(next));
+    }
+  }
+})(sampleReportRoot);
+
 const releaseManifest = {
   schemaVersion: 3,
   sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
@@ -58,7 +75,14 @@ const releaseManifest = {
     authorName: manifest.author.name,
     authorEmail: manifest.author.email,
     eula: fileMetadata("EULA.md"),
-    dossier: fileMetadata(path.join("docs", "partner-center-submission.md"))
+    dossier: fileMetadata(path.join("docs", "partner-center-submission.md")),
+    appSourceListing: "Free",
+    sampleReport: {
+      path: sampleReportRoot.split(path.sep).join("/"),
+      format: "PBIP",
+      files: sampleReportFiles.length,
+      pbixStatus: "Convert with a one-time Power BI Desktop refresh and Save as .pbix; no .pbix is committed."
+    }
   },
   package: {
     filename: packageName,

@@ -20,6 +20,7 @@ test("declares direct release tooling and complete audit gates", () => {
   assert.equal(packageJson.scripts["reproducibility-audit"], "node scripts/reproducibility-audit.cjs");
   assert.equal(packageJson.scripts["publication-audit"], "node scripts/publication-audit.cjs");
   assert.equal(packageJson.scripts["generate-brand-assets"], "node scripts/generate-brand-assets.cjs");
+  assert.equal(packageJson.scripts["generate-sample-report"], "node scripts/generate-sample-report.cjs");
   assert.equal(packageJson.scripts.screenshots, "node scripts/generate-screenshots.cjs");
   assert.match(packageJson.scripts["certification-audit"], /npm run publication-audit/);
   assert.equal(packageJson.devDependencies.jszip, "3.10.1");

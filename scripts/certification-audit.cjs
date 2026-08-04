@@ -78,6 +78,26 @@ assert(generatedMetadata.author?.email === manifest.author.email, "generated aut
     `packaged icon must be 20x20, received ${icon.readUInt32BE(16)}x${icon.readUInt32BE(20)}`
   );
 
+  // The AppSource sample report embeds a copy of this exact package so it renders offline.
+  // Byte-compare it here, immediately after packaging, so the copy can never go stale.
+  const embeddedPath = path.join(
+    root,
+    "samples",
+    "AtlynScatterSample",
+    "AtlynScatterSample.Report",
+    "CustomVisuals",
+    manifest.visual.guid,
+    "resources",
+    `${manifest.visual.guid}.pbiviz.json`
+  );
+  assert(fs.existsSync(embeddedPath), "sample report is missing the embedded visual resource");
+  const embedded = fs.readFileSync(embeddedPath, "utf8");
+  const packaged = await zip.files[resourceName].async("string");
+  assert(
+    embedded === packaged,
+    'sample report embeds a stale visual; run "npm run generate-sample-report" after packaging'
+  );
+
   console.log(`Certification audit passed for ${packageName}`);
 })().catch((error) => {
   console.error(error.message ?? error);

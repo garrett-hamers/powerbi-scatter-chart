@@ -15,16 +15,17 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
 | Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.0.0.pbiviz` |
-| Sample `.pbix` report file (offline) | Yes | **Outstanding — owner action** | Not in repo. See [section 6](#6-remaining-manual-owner-controlled-steps) |
+| Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** | `samples/AtlynScatterSample/` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
 | Support URL (`https://`) | Yes | Ready | `https://atlyn.io/contact` |
 | Privacy policy URL (`https://`) | Yes | Ready | `https://atlyn.io/legal/privacy` |
 | EULA | Yes | Ready | `EULA.md` |
+| Pricing / licensing model | Yes | Decided: **Free** | [Section 6](#6-licensing-and-pricing) |
 | Video link | No | Not provided | — |
 
 Everything marked "Ready" is verified deterministically by `npm run publication-audit` and by
-`tests/release-contract.test.ts`.
+`tests/release-contract.test.ts` and `tests/sample-report.test.ts`.
 
 ## 2. Pbiviz package metadata
 
@@ -115,19 +116,83 @@ posture, which matches `"privileges": []` in `capabilities.json` and the automat
 Alternatively Microsoft's [standard contract](https://go.microsoft.com/fwlink/?linkid=2041178)
 may be selected in Partner Center; if it is, `EULA.md` still applies to the source distribution.
 
-## 6. Remaining manual, owner-controlled steps
+## 6. Licensing and pricing
+
+**AppSource listing: Free.**
+
+| Partner Center field | Value |
+| --- | --- |
+| Pricing model | **Free** |
+| Transactable offer | **No** — do not configure a paid or transactable offer |
+| In-app purchase / licence key | None |
+
+Atlyn Scatter is listed on AppSource at no charge and with no purchase, licence key, or trial
+gate. Monetisation happens **only** through the Atlyn storefront subscription at
+<https://atlyn.io>, which is billed through Stripe and is entirely separate from Microsoft
+AppSource. Nothing in the visual checks for, enforces, or communicates with that subscription:
+the visual declares `"privileges": []` and makes no network requests, which is verified by
+`tests/forbidden-requests.test.ts`.
+
+Practical consequences when filling in the offer:
+
+- Choose the free pricing model. Do **not** enable "Sell through Microsoft" or any transactable
+  or metered billing option.
+- Do not add Microsoft-managed licence terms that imply a paid tier.
+- The EULA in [`EULA.md`](../EULA.md) is MIT-based and grants free use, which matches a free
+  listing. It intentionally says nothing about the Atlyn subscription.
+
+## 7. Sample report
+
+Partner Center requires a sample report that works offline with no external connections. It is
+committed as a **Power BI project (PBIP)** at
+[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample), not as a `.pbix`.
+
+A `.pbix` cannot be produced headlessly: its `DataModel` part is a binary Analysis Services backup
+image, and `pbi-tools compile` emits PBIX only for report-only ("thin") projects. The PBIP holds
+the identical report as plain text — PBIR JSON plus a TMDL semantic model — and Power BI Desktop
+converts it to `.pbix` in one step. **No `.pbix` is committed and none is fabricated.**
+
+### Offline guarantees
+
+- The visual is embedded at `AtlynScatterSample.Report/CustomVisuals/atlynScatter/` and referenced
+  through a `CustomVisual` resource package. `publicCustomVisuals` is deliberately **not** used
+  because it resolves the visual from the AppSource store, which would break offline rendering.
+- The single data source is an inline `#table(...)` M literal with 32 rows, so a refresh needs no
+  credentials and no network.
+
+Both are enforced by `npm run publication-audit` and `tests/sample-report.test.ts`.
+
+### Pages
+
+| Page | Roles bound | Demonstrates |
+| --- | --- | --- |
+| 1 - Quadrant overview | Category, X, Y, Size | Median thresholds, quadrant shading and counts, trend line with equation and R-squared |
+| 2 - Series breakdown | Category, Series, X, Y, Size | Grouped series, legend, host-assigned per-series colours |
+| 3 - Benchmark thresholds | Category, X, Y, Size | Benchmark mode (X = 30, Y = 10) with data labels on |
+
+### One-time conversion in Power BI Desktop
+
+1. Open `samples/AtlynScatterSample/AtlynScatterSample.pbip`.
+2. **Refresh first.** A PBIP caches no data, so Desktop opens showing *"Some of the tables have
+   incomplete or no data."* Choose **Home > Refresh > Schema and data**. Skipping this produces a
+   `.pbix` with empty tables.
+3. Confirm all three pages render with data.
+4. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
+5. Upload that `.pbix` to Partner Center.
+
+Optionally add a final "hints" page with a text box before saving; Microsoft lists it as a
+suggestion, not a requirement.
+
+## 8. Remaining manual, owner-controlled steps
 
 These cannot be completed from this repository and are **not** simulated here.
 
-1. **Author the sample `.pbix` report — blocking.** Partner Center requires a sample report that
-   works fully offline with no external connections. Build it in Power BI Desktop:
-   import `dist/atlynScatter.1.0.0.0.pbiviz`, bind a small embedded (Enter Data) table to
-   Category / X / Y / Size / Series, add a page demonstrating each threshold mode, and add a
-   final "hints" page. Save with the data embedded and confirm the file opens with networking
-   disabled. This file is intentionally **not** committed and must not be fabricated.
+1. **Convert the sample report to `.pbix`** using the five steps in section 7. This is the only
+   remaining hard AppSource artifact.
 2. **Enrol in Partner Center.** Complete or confirm the developer account at
    <https://partner.microsoft.com/dashboard>.
-3. **Create the Power BI visual offer** and set the offer alias.
+3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
+   model. Do not configure a transactable offer.
 4. **Upload the package**: `dist/atlynScatter.1.0.0.0.pbiviz` (from a clean
    `npm run certification-audit` run).
 5. **Upload the sample `.pbix`** from step 1.
@@ -142,7 +207,7 @@ These cannot be completed from this repository and are **not** simulated here.
 11. **Submit for review.** Optionally tick *Request Power BI certification* afterwards; certification
     is a separate, slower process and must not be claimed until it is actually granted.
 
-## 7. Pre-submission command sequence
+## 9. Pre-submission command sequence
 
 ```text
 npm ci
@@ -151,6 +216,7 @@ npm run typecheck
 npm run lint:full
 npm run build
 npm run package
+npm run generate-sample-report
 npm run publication-audit
 npm run certification-audit
 npm run audit
@@ -158,6 +224,6 @@ npm run release-manifest
 ```
 
 `npm run certification-audit` includes `npm run publication-audit`, so a green certification
-audit means the pbiviz metadata, icon, logo, screenshots, EULA, and this dossier all satisfy the
-mechanical AppSource requirements. It does **not** mean the visual has been reviewed, listed, or
-certified by Microsoft.
+audit means the pbiviz metadata, icon, logo, screenshots, sample report, EULA, and this dossier
+all satisfy the mechanical AppSource requirements. It does **not** mean the visual has been
+reviewed, listed, or certified by Microsoft.
