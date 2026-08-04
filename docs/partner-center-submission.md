@@ -14,7 +14,7 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
-| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.0.0.pbiviz` |
+| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.1.0.pbiviz` |
 | Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** (no refresh) | `samples/AtlynScatterSample/` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
@@ -36,7 +36,7 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Visual name (`visual.name`) | `atlynScatter` |
 | Display name (`visual.displayName`) | `Atlyn Scatter` |
 | **GUID** (`visual.guid`) | `atlynScatter` — **never change this.** It is already recorded in the owner's storefront release manifest and download paths. Use Power BI Desktop developer mode to test new builds. |
-| Version (`visual.version`) | `1.0.0.0` (four digits, kept equal to `<package.json version>.0`) |
+| Version (`visual.version`) | `1.0.1.0` (four digits, kept equal to `<package.json version>.0`). **Supersedes `1.0.0.0`** — see [section 2.1](#21-version-1010-supersedes-1000) |
 | Visual class (`visual.visualClassName`) | `Visual` |
 | API version (`apiVersion`) | `5.11.0` |
 | Description (`visual.description`) | "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader." |
@@ -47,9 +47,30 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Privileges (`capabilities.json`) | `[]` — no `WebAccess`, `ExportContent`, or `LocalStorage` |
 | External dependencies (`dependencies`) | `null` |
 
-Package filename: `atlynScatter.1.0.0.0.pbiviz`, produced by `npm run package` into `dist/`.
+Package filename: `atlynScatter.1.0.1.0.pbiviz`, produced by `npm run package` into `dist/`.
 The build is byte-reproducible; `npm run release-manifest` writes `dist/release-manifest.json`
 with the source commit, package SHA-256, and the SHA-256 of every listing asset.
+
+### 2.1 Version 1.0.1.0 supersedes 1.0.0.0
+
+The AppSource submission assets changed the packaged bytes: `assets/icon.png` was a 1x1
+placeholder and is now a real 20x20 icon, which is embedded in the package as `content.iconBase64`.
+The stylesheet fix also added `content.css` to the package for the first time.
+
+Shipping different bytes under the same version number would be wrong, because the Atlyn
+storefront distributes the artifact from a **version-keyed Blob path**. The version was therefore
+bumped from `1.0.0.0` to `1.0.1.0`, and `1.0.1.0` **supersedes** the `1.0.0.0` artifact currently
+in Blob storage.
+
+Action for the owner when re-publishing:
+
+- Upload `dist/atlynScatter.1.0.1.0.pbiviz` to the `1.0.1.0` Blob path.
+- Update the storefront release manifest to point at `1.0.1.0`, using the filename, SHA-256 and
+  byte size from `dist/release-manifest.json` after a clean `npm run certification-audit`.
+- Leave the existing `1.0.0.0` Blob object in place; do not overwrite it. Versioned artifacts are
+  immutable, which is the whole reason for the bump.
+
+The **GUID is unchanged**: it stays `atlynScatter`. Only the version moved.
 
 ## 3. Listing assets
 
@@ -77,7 +98,7 @@ npm run generate-brand-assets
 The screenshots are **real captures of the built visual**, not mock-ups. The pipeline in
 [`scripts/generate-screenshots.cjs`](../scripts/generate-screenshots.cjs):
 
-1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.0.0.pbiviz`;
+1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.1.0.pbiviz`;
 2. loads it in a self-contained HTML page with a mock `IVisualHost` and a hard-coded, fully
    offline categorical `DataView` (no network access, no randomness);
 3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768.
@@ -200,7 +221,7 @@ These cannot be completed from this repository and are **not** simulated here.
    <https://partner.microsoft.com/dashboard>.
 3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
    model. Do not configure a transactable offer.
-4. **Upload the package**: `dist/atlynScatter.1.0.0.0.pbiviz` (from a clean
+4. **Upload the package**: `dist/atlynScatter.1.0.1.0.pbiviz` (from a clean
    `npm run certification-audit` run).
 5. **Upload the sample `.pbix`** from step 1.
 6. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
