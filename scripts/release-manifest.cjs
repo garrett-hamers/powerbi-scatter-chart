@@ -21,8 +21,22 @@ const expectedPackageName = `${manifest.visual.name}.${manifest.visual.version}.
 if (packageName !== expectedPackageName) {
   throw new Error(`Release manifest package filename must be ${expectedPackageName}.`);
 }
+
+function fileMetadata(relativePath) {
+  const filePath = path.join(root, relativePath);
+  if (!fs.existsSync(filePath)) {
+    return null;
+  }
+  const bytes = fs.readFileSync(filePath);
+  return {
+    path: relativePath,
+    bytes: bytes.length,
+    sha256: crypto.createHash("sha256").update(bytes).digest("hex")
+  };
+}
+
 const releaseManifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   sourceCommit: execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim(),
   visual: {
     guid: manifest.visual.guid,
@@ -33,6 +47,10 @@ const releaseManifest = {
     filename: packageName,
     bytes: packageBuffer.length,
     sha256: crypto.createHash("sha256").update(packageBuffer).digest("hex")
+  },
+  assets: {
+    visualIcon: fileMetadata(manifest.assets.icon),
+    partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png"))
   },
   hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to fixed DOS timestamps, DEFLATE level 9, and DOS platform metadata before hashing."
 };

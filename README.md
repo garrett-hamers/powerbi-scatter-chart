@@ -20,6 +20,7 @@ npm run build
 npm run package
 npm run reproducibility-audit
 npm run certification-audit
+npm run publication-audit
 npm run audit
 ```
 
@@ -31,6 +32,10 @@ metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ fil
 `npm run release-manifest` writes `dist/release-manifest.json` with the source commit, exact
 package filename, byte size, and SHA-256. The release manifest is the immutable-artifact record:
 never overwrite a package or manifest at an existing versioned location.
+
+`npm run publication-audit` verifies publication image assets: `assets/icon.png` must be a real
+non-placeholder source icon and `assets/partner-center-logo-300x300.png` must be a valid 300x300
+PNG for Partner Center submission.
 
 The categorical data window is bounded at 10,000 rows. The visual does not request more data
 from a segmented host response: it computes thresholds, quadrant counts, and regression over all
