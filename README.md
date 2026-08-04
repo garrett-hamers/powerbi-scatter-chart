@@ -49,8 +49,8 @@ submission surface deterministically:
 - both brand assets match a pixel-for-pixel regeneration by `scripts/generate-brand-assets.cjs`.
 - `assets/screenshots/` holds 1 to 5 PNG files, each exactly 1366x768 and at most 1024 KB.
 - the offline sample report in `samples/` embeds the visual under `CustomVisuals/`, avoids
-  `publicCustomVisuals`, matches the current visual version, and sources its data only from an
-  inline `#table(...)` literal.
+  `publicCustomVisuals`, matches the current visual version, and defines its data as a DAX
+  calculated table with no data source.
 - `pbiviz.json` carries every required submission field, a four-part version, an `https://`
   support URL, and an author email that is not an RFC 2606 reserved domain.
 - `EULA.md` and the submission dossier exist, and the dossier records the `https://` privacy
@@ -72,10 +72,11 @@ images. This step is local and on demand; CI only validates the committed PNGs.
 
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
-report JSON plus a TMDL semantic model whose only data source is an inline `#table(...)` literal,
-with the built visual embedded under `CustomVisuals/` so nothing is fetched from the AppSource
-store. See [`samples/README.md`](samples/README.md) for the one-time Power BI Desktop
-"Save as .pbix" step. No `.pbix` is committed.
+report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(...)` calculated
+table, so the model declares no data source at all, with the built visual embedded under
+`CustomVisuals/` so nothing is fetched from the AppSource store. See
+[`samples/README.md`](samples/README.md) for the one-time Power BI Desktop "Save as .pbix" step.
+No `.pbix` is committed.
 
 ## AppSource licensing
 

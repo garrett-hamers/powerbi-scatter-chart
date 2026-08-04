@@ -42,14 +42,6 @@ const SCHEMA = {
 // Fixed logical identifiers keep regeneration byte-for-byte stable.
 const REPORT_LOGICAL_ID = "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d01";
 const MODEL_LOGICAL_ID = "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d02";
-const COLUMN_LINEAGE = {
-  Product: "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d11",
-  Region: "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d12",
-  "Gross margin %": "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d13",
-  "Revenue growth %": "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d14",
-  Revenue: "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d15"
-};
-const TABLE_LINEAGE = "6f7c2a10-4b1e-4f6a-9d3c-8a5e2b7c1d10";
 
 const roleNames = new Set(capabilities.dataRoles.map((role) => role.name));
 
@@ -205,52 +197,63 @@ function visualJson(page) {
 
 function tmdlRows() {
   return matrixRows()
-    .map((row) => `\t\t\t\t            {"${row.product}", "${row.region}", ${row.margin}, ${row.growth}, ${row.revenue}}`)
+    .map((row) => `\t\t\t\t        {"${row.product}", "${row.region}", ${row.margin}, ${row.growth}, ${row.revenue}}`)
     .join(",\n");
 }
 
+// The sample data is a DAX calculated table, not a Power Query partition. A calculated table has
+// no data source at all, so the model carries no connection, prompts for no credentials, and needs
+// no refresh: the engine materialises it while loading the model. An M partition would leave the
+// project with empty tables until the owner ran a manual refresh.
 function tableTmdl() {
-  const numericColumns = ["Gross margin %", "Revenue growth %", "Revenue"];
-  const averageColumns = ["Gross margin %", "Revenue growth %"];
-  const columns = ["Product", "Region", ...numericColumns].map((column) => {
-    const numeric = numericColumns.includes(column);
+  const columnAggregates = {
+    Product: "none",
+    Region: "none",
+    "Gross margin %": "average",
+    "Revenue growth %": "average",
+    Revenue: "sum"
+  };
+  const columnTypes = {
+    Product: "STRING",
+    Region: "STRING",
+    "Gross margin %": "DOUBLE",
+    "Revenue growth %": "DOUBLE",
+    Revenue: "DOUBLE"
+  };
+  const columnNames = Object.keys(columnAggregates);
+
+  const columns = columnNames.map((column) => {
     const quoted = /^[A-Za-z_][A-Za-z0-9_]*$/.test(column) ? column : `'${column}'`;
-    const summarizeBy = numeric ? (averageColumns.includes(column) ? "average" : "sum") : "none";
-    const lines = [
+    return [
       `\tcolumn ${quoted}`,
-      `\t\tdataType: ${numeric ? "double" : "string"}`,
-      `\t\tlineageTag: ${COLUMN_LINEAGE[column]}`,
-      `\t\tsummarizeBy: ${summarizeBy}`,
-      `\t\tsourceColumn: ${column}`,
+      `\t\tsummarizeBy: ${columnAggregates[column]}`,
+      "\t\tisNameInferred",
+      `\t\tsourceColumn: [${column}]`,
       "",
       "\t\tannotation SummarizationSetBy = Automatic"
-    ];
-    if (numeric) {
-      lines.push("", '\t\tannotation PBI_FormatHint = {"isGeneralNumber":true}');
-    }
-    return lines.join("\n");
+    ].join("\n");
   });
 
+  const declarations = columnNames
+    .map((column) => `\t\t\t\t    "${column}", ${columnTypes[column]},`)
+    .join("\n");
+
   return [
+    "/// Offline sample data for the Atlyn Scatter AppSource listing. Defined as a DAX calculated",
+    "/// table so the model has no data source, needs no credentials, and needs no refresh.",
     `table ${TABLE}`,
-    `\tlineageTag: ${TABLE_LINEAGE}`,
     "",
     columns.join("\n\n"),
     "",
-    `\tpartition ${TABLE} = m`,
+    `\tpartition ${TABLE} = calculated`,
     "\t\tmode: import",
     "\t\tsource =",
-    "\t\t\t\tlet",
-    "\t\t\t\t    Source = #table(",
-    '\t\t\t\t        type table [Product = text, Region = text, #"Gross margin %" = number, #"Revenue growth %" = number, Revenue = number],',
-    "\t\t\t\t        {",
+    "\t\t\t\tDATATABLE(",
+    declarations,
+    "\t\t\t\t    {",
     tmdlRows(),
-    "\t\t\t\t        }",
-    "\t\t\t\t    )",
-    "\t\t\t\tin",
-    "\t\t\t\t    Source",
-    "",
-    "\tannotation PBI_ResultType = Table",
+    "\t\t\t\t    }",
+    "\t\t\t\t)",
     ""
   ].join("\n");
 }
@@ -366,7 +369,7 @@ async function writeCustomVisual() {
   });
 
   writeText(path.join(modelRoot, "definition", "database.tmdl"), [
-    `database ${PROJECT}`,
+    "database",
     "\tcompatibilityLevel: 1550",
     ""
   ].join("\n"));
@@ -376,8 +379,6 @@ async function writeCustomVisual() {
     "\tculture: en-US",
     "\tdefaultPowerBIDataSourceVersion: powerBI_V3",
     "\tsourceQueryCulture: en-US",
-    "",
-    `\tannotation PBI_QueryOrder = ["${TABLE}"]`,
     "",
     `ref table ${TABLE}`,
     ""

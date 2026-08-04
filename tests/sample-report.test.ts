@@ -126,18 +126,21 @@ test("embeds the visual so the report renders with no store lookup", () => {
   assert.ok(embedded.content.css.includes(".atlyn-scatter"), "the embedded stylesheet must be present");
 });
 
-test("sources the sample data from inline literals only", () => {
-  const tmdl = fs.readFileSync(
-    path.join(modelRoot, "definition", "tables", "ProductPerformance.tmdl"),
-    "utf8"
-  );
-  assert.match(tmdl, /partition ProductPerformance = m/);
+test("sources the sample data from a DAX calculated table with no data source", () => {
+  const definitionRoot = path.join(modelRoot, "definition");
+  const tmdl = fs.readFileSync(path.join(definitionRoot, "tables", "ProductPerformance.tmdl"), "utf8");
+
+  // A calculated table carries no connection, so Power BI Desktop materialises it while loading
+  // the model: no credential prompt and no refresh before "Save as .pbix".
+  assert.match(tmdl, /partition ProductPerformance = calculated/);
   assert.match(tmdl, /mode: import/);
-  assert.match(tmdl, /#table\(/, "data must come from an inline table literal");
+  assert.match(tmdl, /DATATABLE\(/, "data must come from a DAX DATATABLE literal");
+  assert.equal(/partition\s+\S+\s*=\s*m\b/.test(tmdl), false, "an M partition would reintroduce a data source");
+  assert.equal(tmdl.includes("#table("), false, "#table is Power Query, not DAX");
 
   const insecureProtocol = `${"http"}://`;
   const secureProtocol = `${"https"}://`;
-  for (const connector of [
+  const externalSources = [
     "Sql.Database",
     "Web.Contents",
     "File.Contents",
@@ -150,11 +153,32 @@ test("sources the sample data from inline literals only", () => {
     "Folder.Files",
     insecureProtocol,
     secureProtocol
-  ]) {
-    assert.equal(tmdl.includes(connector), false, `${connector} would require an external connection`);
+  ];
+
+  // Nothing anywhere in the semantic model may declare a source, a shared expression, or a URL.
+  const modelFiles: string[] = [];
+  (function walk(directory: string): void {
+    for (const entry of fs.readdirSync(directory)) {
+      const next = path.join(directory, entry);
+      if (fs.statSync(next).isDirectory()) {
+        walk(next);
+      } else {
+        modelFiles.push(next);
+      }
+    }
+  })(definitionRoot);
+  assert.ok(modelFiles.length >= 3);
+
+  for (const filePath of modelFiles) {
+    const contents = fs.readFileSync(filePath, "utf8");
+    for (const connector of externalSources) {
+      assert.equal(contents.includes(connector), false, `${path.basename(filePath)} references ${connector}`);
+    }
+    assert.equal(/^\s*dataSource\s/m.test(contents), false, `${path.basename(filePath)} declares a data source`);
+    assert.equal(/^\s*expression\s/m.test(contents), false, `${path.basename(filePath)} declares a shared expression`);
   }
 
-  // 32 product-and-region rows, so a refresh needs no credentials and no network.
+  // 32 product-and-region rows.
   const rows = tmdl.split("\n").filter((line) => /^\s*\{".+", ".+",/.test(line));
   assert.equal(rows.length, 32);
 });

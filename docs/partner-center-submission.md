@@ -15,7 +15,7 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
 | Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.0.0.pbiviz` |
-| Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** | `samples/AtlynScatterSample/` |
+| Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** (no refresh) | `samples/AtlynScatterSample/` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
 | Support URL (`https://`) | Yes | Ready | `https://atlyn.io/contact` |
@@ -147,20 +147,26 @@ Partner Center requires a sample report that works offline with no external conn
 committed as a **Power BI project (PBIP)** at
 [`samples/AtlynScatterSample/`](../samples/AtlynScatterSample), not as a `.pbix`.
 
-A `.pbix` cannot be produced headlessly: its `DataModel` part is a binary Analysis Services backup
-image, and `pbi-tools compile` emits PBIX only for report-only ("thin") projects. The PBIP holds
-the identical report as plain text — PBIR JSON plus a TMDL semantic model — and Power BI Desktop
-converts it to `.pbix` in one step. **No `.pbix` is committed and none is fabricated.**
+A `.pbix` cannot be produced headlessly. Its `DataModel` part is a binary Analysis Services backup
+image, and `pbi-tools` is not a workaround: version 1.2.0 was tested against the installed Power BI
+Desktop 2.150.2102.0 and `pbi-tools compile` fails with
+`System.MissingMethodException: Method not found: 'Void Microsoft.PowerBI.Packaging.PowerBIPackager.Save(...)'`.
+The PBIP holds the identical report as plain text — PBIR JSON plus a TMDL semantic model — and
+Power BI Desktop opens it directly with no third-party tooling. **No `.pbix` is committed and none
+is fabricated.**
 
 ### Offline guarantees
 
 - The visual is embedded at `AtlynScatterSample.Report/CustomVisuals/atlynScatter/` and referenced
   through a `CustomVisual` resource package. `publicCustomVisuals` is deliberately **not** used
   because it resolves the visual from the AppSource store, which would break offline rendering.
-- The single data source is an inline `#table(...)` M literal with 32 rows, so a refresh needs no
-  credentials and no network.
+- The semantic model declares **no data source and no shared expression**. Its single table is a
+  DAX `DATATABLE(...)` calculated table holding 32 rows, so there is nothing to connect to, no
+  credential prompt, and no refresh dependency.
 
-Both are enforced by `npm run publication-audit` and `tests/sample-report.test.ts`.
+Both are enforced by `npm run publication-audit` and `tests/sample-report.test.ts`, and confirmed
+by the Analysis Services TMDL parser reporting `dataSources=0`, `expressions=0`, and a `Calculated`
+partition.
 
 ### Pages
 
@@ -173,12 +179,11 @@ Both are enforced by `npm run publication-audit` and `tests/sample-report.test.t
 ### One-time conversion in Power BI Desktop
 
 1. Open `samples/AtlynScatterSample/AtlynScatterSample.pbip`.
-2. **Refresh first.** A PBIP caches no data, so Desktop opens showing *"Some of the tables have
-   incomplete or no data."* Choose **Home > Refresh > Schema and data**. Skipping this produces a
-   `.pbix` with empty tables.
-3. Confirm all three pages render with data.
-4. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
-5. Upload that `.pbix` to Partner Center.
+2. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
+3. Upload that `.pbix` to Partner Center.
+
+No refresh step is needed: the calculated table has no data source, so Desktop materialises it
+while loading the model.
 
 Optionally add a final "hints" page with a text box before saving; Microsoft lists it as a
 suggestion, not a requirement.
@@ -187,8 +192,10 @@ suggestion, not a requirement.
 
 These cannot be completed from this repository and are **not** simulated here.
 
-1. **Convert the sample report to `.pbix`** using the five steps in section 7. This is the only
-   remaining hard AppSource artifact.
+1. **Convert the sample report to `.pbix`**: open
+   `samples/AtlynScatterSample/AtlynScatterSample.pbip` in Power BI Desktop and choose
+   **File > Save as > Power BI file (.pbix)**. No refresh is required. This is the only remaining
+   hard AppSource artifact.
 2. **Enrol in Partner Center.** Complete or confirm the developer account at
    <https://partner.microsoft.com/dashboard>.
 3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing

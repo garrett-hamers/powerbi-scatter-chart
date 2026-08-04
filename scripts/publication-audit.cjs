@@ -279,8 +279,14 @@ function auditSampleReport() {
   }
 
   const tmdl = fs.readFileSync(tablePath, "utf8");
-  if (!tmdl.includes("#table(")) {
-    blockers.push("Sample report data must come from an inline table literal so it works offline.");
+  if (!tmdl.includes("DATATABLE(")) {
+    blockers.push("Sample report data must be a DAX DATATABLE calculated table so it needs no data source.");
+  }
+  if (!/partition\s+\S+\s*=\s*calculated/.test(tmdl)) {
+    blockers.push("Sample report table must use a calculated partition.");
+  }
+  if (/partition\s+\S+\s*=\s*m\b/.test(tmdl)) {
+    blockers.push("Sample report uses a Power Query partition, which reintroduces a data source and a refresh step.");
   }
   for (const connector of [
     "Sql.Database",
@@ -293,7 +299,8 @@ function auditSampleReport() {
     "SharePoint.",
     "AzureStorage.",
     "http://",
-    "https://"
+    "https://",
+    "#table("
   ]) {
     if (tmdl.includes(connector)) {
       blockers.push(`Sample report data source uses ${connector}, which requires an external connection.`);

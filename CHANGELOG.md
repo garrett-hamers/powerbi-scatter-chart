@@ -5,9 +5,9 @@
 - Added the offline AppSource sample report as a Power BI project at
   `samples/AtlynScatterSample/`, generated deterministically by
   `scripts/generate-sample-report.cjs`. It embeds the built visual under `CustomVisuals/` instead
-  of using `publicCustomVisuals`, and sources 32 rows from a single inline `#table(...)` literal,
-  so it renders and refreshes with no network and no credentials. Verified by opening it in Power
-  BI Desktop.
+  of using `publicCustomVisuals`, and defines its 32 rows as a DAX `DATATABLE(...)` calculated
+  table, so the semantic model declares no data source, prompts for no credentials, and needs no
+  refresh before the one-time Power BI Desktop "Save as .pbix".
 - Recorded the AppSource listing as **Free** in `docs/partner-center-submission.md`, separate from
   the Atlyn storefront subscription at atlyn.io.
 - Extracted the offline sample dataset to `scripts/sample-data.cjs` so the listing screenshots and
