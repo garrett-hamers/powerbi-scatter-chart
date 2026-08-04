@@ -14,7 +14,7 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
-| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.0.0.pbiviz` |
+| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.1.0.pbiviz` |
 | Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** (no refresh) | `samples/AtlynScatterSample/` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
@@ -36,7 +36,7 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Visual name (`visual.name`) | `atlynScatter` |
 | Display name (`visual.displayName`) | `Atlyn Scatter` |
 | **GUID** (`visual.guid`) | `atlynScatter` — **never change this.** It is already recorded in the owner's storefront release manifest and download paths. Use Power BI Desktop developer mode to test new builds. |
-| Version (`visual.version`) | `1.0.0.0` (four digits, kept equal to `<package.json version>.0`) |
+| Version (`visual.version`) | `1.0.1.0` (four digits, kept equal to `<package.json version>.0`) |
 | Visual class (`visual.visualClassName`) | `Visual` |
 | API version (`apiVersion`) | `5.11.0` |
 | Description (`visual.description`) | "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader." |
@@ -47,9 +47,14 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Privileges (`capabilities.json`) | `[]` — no `WebAccess`, `ExportContent`, or `LocalStorage` |
 | External dependencies (`dependencies`) | `null` |
 
-Package filename: `atlynScatter.1.0.0.0.pbiviz`, produced by `npm run package` into `dist/`.
+Package filename: `atlynScatter.1.0.1.0.pbiviz`, produced by `npm run package` into `dist/`.
 The build is byte-reproducible; `npm run release-manifest` writes `dist/release-manifest.json`
 with the source commit, package SHA-256, and the SHA-256 of every listing asset.
+
+Version `1.0.1.0` supersedes `1.0.0.0`. The 1.0.0.0 bytes were already distributed from the
+owner's storefront, and the AppSource preparation work changed the packaged contents, so the
+version was bumped rather than republishing different bytes under an existing version. Never
+overwrite a package at an existing versioned location.
 
 ## 3. Listing assets
 
@@ -77,7 +82,7 @@ npm run generate-brand-assets
 The screenshots are **real captures of the built visual**, not mock-ups. The pipeline in
 [`scripts/generate-screenshots.cjs`](../scripts/generate-screenshots.cjs):
 
-1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.0.0.pbiviz`;
+1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.1.0.pbiviz`;
 2. loads it in a self-contained HTML page with a mock `IVisualHost` and a hard-coded, fully
    offline categorical `DataView` (no network access, no randomness);
 3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768.
@@ -200,7 +205,7 @@ These cannot be completed from this repository and are **not** simulated here.
    <https://partner.microsoft.com/dashboard>.
 3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
    model. Do not configure a transactable offer.
-4. **Upload the package**: `dist/atlynScatter.1.0.0.0.pbiviz` (from a clean
+4. **Upload the package**: `dist/atlynScatter.1.0.1.0.pbiviz` (from a clean
    `npm run certification-audit` run).
 5. **Upload the sample `.pbix`** from step 1.
 6. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
