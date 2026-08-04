@@ -18,6 +18,7 @@ test("declares direct release tooling and complete audit gates", () => {
   assert.match(packageJson.scripts.package, /npm run clean/);
   assert.match(packageJson.scripts.package, /node scripts\/normalize-pbiviz\.cjs/);
   assert.equal(packageJson.scripts["reproducibility-audit"], "node scripts/reproducibility-audit.cjs");
+  assert.equal(packageJson.scripts["publication-audit"], "node scripts/publication-audit.cjs");
   assert.equal(packageJson.devDependencies.jszip, "3.10.1");
   assert.equal(packageJson.devDependencies["write-file-atomic"], "5.0.1");
   assert.equal(packageJson.scripts["release-manifest"], "node scripts/release-manifest.cjs");
