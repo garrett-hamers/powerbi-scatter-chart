@@ -1,6 +1,6 @@
 {
   "generatedBy": "scripts/generate-screenshots.cjs",
-  "note": "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time assertions measured and the SHA-256 of the PNG that capture wrote. The audits re-hash the committed files against these values, which detects a screenshot being changed without the capture that vouches for it being re-run. This is a hash comparison, not a pixel diff. Re-capturing on the same platform reproduces these bytes exactly.",
+  "note": "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time assertions measured and the SHA-256 of the PNG that capture wrote, and the capture block records the packaged bundle those images were rendered from. The audits re-hash the committed files against these values and re-check the bundle hash against the packaged visual, which detects both a screenshot changing without its capture being re-run and the visual changing without the screenshots being re-captured. These are hash comparisons, not pixel diffs. Re-capturing on the same platform reproduces these bytes exactly.",
   "visual": {
     "name": "atlynScatter",
     "version": "1.0.1.0",

@@ -168,6 +168,19 @@ cannot flake on Chrome versions, font availability or rasteriser changes. The re
 are the measured numbers rather than a pass flag, because `tableVisibleHeight: 180` next to
 `at least 120` is reviewable months later and "assertions passed" is not.
 
+That answers "did this screenshot change since it was captured?" but not "is it still
+current?" — and the latter is the question this repository actually got wrong, since the
+zero-height table shipped in screenshots that were internally consistent and merely out of
+date. So the manifest also records the SHA-256 of the packaged `.pbiviz` the images were
+rendered from, and `npm run certification-audit` re-checks it against the artifact it just
+packaged. A visual rebuilt without re-capturing its screenshots fails the build, naming both
+hashes. Every other field the manifest records — the visual name, version and GUID, the tile
+size, the bundle filename, its resource origin and its JS and CSS byte counts, and the scene
+list with its captions — is compared the same way, because a recorded value nothing checks is
+decoration, and decoration shaped like verification is worse than nothing.
+`tests/screenshot-manifest.test.ts` drives that comparison with deliberately stale and
+doctored manifests rather than only with one that already happens to be correct.
+
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
 report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(...)` calculated

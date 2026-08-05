@@ -243,7 +243,18 @@ function capture(browser, htmlPath, pngPath) {
   return result.stdout;
 }
 
-(async () => {
+// Exported so the audits can check the committed manifest still describes the scenes this
+// generator actually defines. Requiring this file must therefore not start a capture.
+module.exports = { scenarios };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error.message ?? error);
+    process.exitCode = 1;
+  });
+}
+
+async function main() {
   const browser = resolveBrowser("Screenshot generation");
   const resources = await readPackageResources();
   const shadowRoot = stylesheetNeedsShadowRoot(resources.css);
@@ -351,7 +362,4 @@ function capture(browser, htmlPath, pngPath) {
     );
   }
   console.log(`Verified ${relative(manifestPath)} against the committed images: every screenshot still hashes to what its capture recorded.`);
-})().catch((error) => {
-  console.error(error.message ?? error);
-  process.exitCode = 1;
-});
+}

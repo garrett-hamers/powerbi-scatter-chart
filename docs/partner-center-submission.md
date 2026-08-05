@@ -89,7 +89,8 @@ The screenshots are **real captures of the built visual**, not mock-ups. The pip
    the same browser run probes the frame that was photographed;
 4. checks that frame against the scene's own declared expectations and only then publishes the
    PNG into `assets/screenshots/`;
-5. records the values it measured and the SHA-256 of every image it wrote into the committed
+5. records the values it measured, the SHA-256 of every image it wrote, and the SHA-256 of the
+   packaged bundle those images were rendered from, into the committed
    [`assets/screenshot-manifest.json`](../assets/screenshot-manifest.json).
 
 ```text
@@ -128,6 +129,14 @@ committed screenshot no scene vouches for. Capture-time assertions prove an imag
 when written; the manifest is what still proves it afterwards. It is a hash comparison rather
 than a pixel diff, so nothing here can flake on Chrome versions, font availability or
 rasteriser changes.
+
+The manifest also records the SHA-256 of the packaged `.pbiviz` the images were rendered from,
+and `npm run certification-audit` compares it against the artifact it has just packaged. This
+is the check that would have caught the zero-height accessible table: those screenshots were
+internally consistent and simply older than the visual, so every gate passed them. A visual
+rebuilt without re-capturing its screenshots now fails the build, naming both hashes and the
+fix. Re-capture is cheap — a bundle change that does not alter rendering reproduces all three
+PNGs byte-for-byte and moves only the recorded bundle hash.
 
 ## 4. Listing URLs
 

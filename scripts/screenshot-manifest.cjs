@@ -32,10 +32,12 @@ const MAX_SCREENSHOT_BYTES = 1024 * 1024;
 
 const MANIFEST_NOTE =
   "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time " +
-  "assertions measured and the SHA-256 of the PNG that capture wrote. The audits re-hash the " +
-  "committed files against these values, which detects a screenshot being changed without the " +
-  "capture that vouches for it being re-run. This is a hash comparison, not a pixel diff. " +
-  "Re-capturing on the same platform reproduces these bytes exactly.";
+  "assertions measured and the SHA-256 of the PNG that capture wrote, and the capture block " +
+  "records the packaged bundle those images were rendered from. The audits re-hash the " +
+  "committed files against these values and re-check the bundle hash against the packaged " +
+  "visual, which detects both a screenshot changing without its capture being re-run and the " +
+  "visual changing without the screenshots being re-captured. These are hash comparisons, not " +
+  "pixel diffs. Re-capturing on the same platform reproduces these bytes exactly.";
 
 function relative(filePath) {
   return path.relative(root, filePath).split(path.sep).join("/");
@@ -152,6 +154,94 @@ function verifyCommittedScreenshots() {
   return found;
 }
 
+// Everything the manifest records about the build the images came from, checked against the
+// build that is actually packaged right now.
+//
+// verifyCommittedScreenshots above answers "did this PNG change since it was captured?".
+// It cannot answer "is this PNG still current?", and that is the question this repository
+// got wrong: showSemanticTable defaults to true, the accessible table rendered at 0px visible
+// height, the listing screenshots were captured from that build, and they were committed
+// showing no table at all. Every gate passed, because the images were internally consistent
+// and simply out of date. Binding the recorded bundle hash to the packaged artifact makes
+// that state uncommittable — the screenshots become demonstrably older than the visual.
+//
+// A recorded value that nothing compares against is decoration, and decoration shaped like
+// verification is worse than nothing, so every field the manifest carries is checked here
+// apart from the two prose fields (`note`, and the per-scene captions are checked against
+// the generator's own scene list rather than treated as free text).
+function verifyCaptureBinding(context) {
+  const { manifest, problems } = readManifest();
+  if (problems) {
+    return problems;
+  }
+  return inspectCaptureBinding(manifest, context);
+}
+
+// Pure so tests can drive it with deliberately stale and doctored manifests, rather than only
+// with a manifest that already happens to be correct.
+function inspectCaptureBinding(manifest, context) {
+  const found = [];
+  const capture = manifest.capture ?? {};
+
+  const expect = (label, actual, expected) => {
+    if (actual !== expected) {
+      found.push(`${relative(manifestPath)} records ${label} ${JSON.stringify(actual)}, but the packaged visual has ${JSON.stringify(expected)}.`);
+    }
+  };
+
+  expect("generatedBy", manifest.generatedBy, "scripts/generate-screenshots.cjs");
+  expect("visual.name", manifest.visual?.name, context.visual.name);
+  expect("visual.version", manifest.visual?.version, context.visual.version);
+  expect("visual.guid", manifest.visual?.guid, context.visual.guid);
+  expect("capture.tile.width", capture.tile?.width, SCREENSHOT_WIDTH);
+  expect("capture.tile.height", capture.tile?.height, SCREENSHOT_HEIGHT);
+  expect("capture.bundle", capture.bundle, context.packageName);
+  expect("capture.bundleOrigin", capture.bundleOrigin, context.bundleOrigin);
+  expect("capture.bundleJsBytes", capture.bundleJsBytes, context.bundleJsBytes);
+  expect("capture.bundleCssBytes", capture.bundleCssBytes, context.bundleCssBytes);
+
+  // The load-bearing one. The byte-length fields above are a weaker signal that happens to
+  // miss same-length edits — flipping a boolean default leaves bundleJsBytes untouched — so
+  // the hash is what actually decides whether the images are current. Failing rather than
+  // warning is deliberate: a stale screenshot is a submission asset that misrepresents the
+  // product, and it is exactly what Partner Center would be shown.
+  if (capture.bundleSha256 !== context.bundleSha256) {
+    found.push(
+      `the committed screenshots were captured from a different build of the visual than the one packaged now.\n` +
+      `      ${relative(manifestPath)} records bundle sha256 ${capture.bundleSha256}\n` +
+      `      ${context.packageName} currently hashes to ${context.bundleSha256}\n` +
+      `      The screenshots predate the current visual, so they may show behaviour it no longer has. ` +
+      `Run "npm run screenshots" to re-capture and re-assert them against this build.`
+    );
+  }
+
+  // A scene the generator no longer defines, or one it defines that the manifest has never
+  // seen, means the manifest describes a different set of pictures than the one that would be
+  // produced today.
+  const defined = context.scenarios ?? [];
+  const recorded = manifest.scenes ?? [];
+  const definedFiles = defined.map((scenario) => scenario.file).sort();
+  const recordedFiles = recorded.map((scene) => scene.file).sort();
+  if (definedFiles.join("|") !== recordedFiles.join("|")) {
+    found.push(
+      `${relative(manifestPath)} records scenes ${JSON.stringify(recordedFiles)}, but ` +
+      `scripts/generate-screenshots.cjs defines ${JSON.stringify(definedFiles)}. ` +
+      `Run "npm run screenshots" so the manifest describes the scenes that exist.`
+    );
+  }
+  for (const scenario of defined) {
+    const scene = recorded.find((entry) => entry.file === scenario.file);
+    if (scene && scene.caption !== scenario.caption) {
+      found.push(
+        `${relative(manifestPath)} describes ${scenario.file} as ${JSON.stringify(scene.caption)}, but the ` +
+        `generator now calls it ${JSON.stringify(scenario.caption)}. The scene was re-described without being re-captured.`
+      );
+    }
+  }
+
+  return found;
+}
+
 module.exports = {
   manifestPath,
   screenshotDirectory,
@@ -160,5 +250,7 @@ module.exports = {
   buildManifest,
   writeManifest,
   readManifest,
-  verifyCommittedScreenshots
+  verifyCommittedScreenshots,
+  verifyCaptureBinding,
+  inspectCaptureBinding
 };

@@ -2,6 +2,8 @@ const fs = require("node:fs");
 const path = require("node:path");
 const JSZip = require("jszip");
 const { inspectPackage } = require("./pbiviz-structure.cjs");
+const { verifyCaptureBinding, sha256 } = require("./screenshot-manifest.cjs");
+const { scenarios } = require("./generate-screenshots.cjs");
 
 const root = path.resolve(__dirname, "..");
 const packageJson = readJson("package.json");
@@ -128,6 +130,26 @@ assert(generatedMetadata.author?.email === manifest.author.email, "generated aut
   assert(
     embedded === packaged,
     'sample report embeds a stale visual; run "npm run generate-sample-report" after packaging'
+  );
+
+  // Same reasoning as the sample report above, applied to the listing screenshots. The
+  // screenshot manifest records the bundle its images were rendered from, and that record is
+  // worthless unless something compares it to the bundle that exists now. This repository
+  // shipped submission screenshots captured from a build whose accessible table rendered at
+  // 0px: the images were internally consistent and simply out of date, so nothing caught it.
+  // Checked here because this is the audit that runs against a freshly packaged artifact.
+  const bindingProblems = verifyCaptureBinding({
+    visual: manifest.visual,
+    packageName,
+    bundleSha256: sha256(fs.readFileSync(packagePath)),
+    bundleOrigin: resourceName,
+    bundleJsBytes: resource.content.js.length,
+    bundleCssBytes: (resource.content.css ?? "").length,
+    scenarios
+  });
+  assert(
+    bindingProblems.length === 0,
+    `listing screenshots do not match the packaged visual:\n  - ${bindingProblems.join("\n  - ")}`
   );
 
   console.log(`Certification audit passed for ${packageName}`);
