@@ -2,6 +2,34 @@
 
 ## Unreleased
 
+- Bound the listing screenshots to the build that rendered them. The screenshot manifest added
+  alongside the capture-time assertions recorded `capture.bundleSha256` and then nothing ever
+  read it — a recorded value with nothing comparing it to reality, which is the same defect the
+  manifest was built to fix. The manifest could therefore detect a screenshot changing without
+  its capture being re-run, but not the visual changing without the screenshots being
+  re-captured, and the latter is what actually shipped here: `showSemanticTable` defaults to
+  true, the accessible table rendered at 0px visible height, and the submission screenshots were
+  captured from that build and committed showing no table. Those images were internally
+  consistent and merely out of date, so every gate passed them. `npm run certification-audit`
+  now compares the recorded bundle hash against the `.pbiviz` it has just packaged and fails,
+  naming both hashes, when the screenshots predate the current visual. Proven by reproducing the
+  original scenario — flipping `showSemanticTable` to false, repackaging, and not re-capturing —
+  which the audit rejected. Notably `bundleJsBytes` did **not** move for that edit, so the hash
+  is the check that decides.
+- Asserted every other value the manifest records, since decoration shaped like verification is
+  worse than nothing: the visual name, version and GUID, the tile size, the bundle filename, its
+  resource origin, its JS and CSS byte counts, `generatedBy`, and the scene list with its
+  captions, so a scene re-described or added without being re-captured is rejected too. The
+  comparison is a pure function driven by `tests/screenshot-manifest.test.ts` with deliberately
+  stale and doctored manifests rather than only with one that already happens to be correct.
+  Only the manifest's prose `note` is now unasserted.
+- Measured the friction before committing to the gate: changing a string the en-US screenshots
+  never render moved the bundle hash, and one `npm run screenshots` reproduced all three PNGs
+  byte-for-byte, updating only `bundleSha256` and `bundleJsBytes`. A bundle change that does not
+  alter rendering therefore costs one re-capture and no image churn. The packaged artifact is
+  unchanged at 17,492 bytes, sha256
+  `f77138f49d20c0d3ad4e6d501845bd513d9ee9136290093acd58941f8e6f534f`.
+
 - Added capture-time content assertions to the listing screenshots, so a screenshot cannot be
   written unless the scene it claims to show actually rendered. Generation previously validated
   only that the output was a 1366x768 PNG under the 1024 KB cap, which are properties of the
