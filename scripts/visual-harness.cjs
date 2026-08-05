@@ -97,6 +97,41 @@ function buildDataView(scenario) {
   };
 }
 
+// Small viewports and overflowing content are different tests. This fixture is deliberately
+// large so the visual's scrollable regions genuinely exceed their containers and can be
+// scrolled: a fixture whose content happens to fit makes every scroll-time assertion vacuous.
+// Values are generated deterministically so the probe stays reproducible.
+function buildOverflowDataView(options = {}) {
+  const categoryCount = options.categoryCount ?? 320;
+  const seriesCount = options.seriesCount ?? 12;
+  const categories = [];
+  for (let index = 0; index < categoryCount; index += 1) {
+    // Long names on purpose: they stress legend chips, data labels and table columns.
+    categories.push(`Portfolio line item ${String(index + 1).padStart(3, "0")} - extended label`);
+  }
+  const value = (seed, spread, offset) => Math.round(((seed * 37) % spread) * 100) / 100 + offset;
+  if (!options.grouped) {
+    return {
+      grouped: false,
+      objects: options.objects ?? null,
+      categories,
+      margins: categories.map((_, index) => value(index + 1, 60, 5)),
+      growth: categories.map((_, index) => value(index + 7, 45, -15)),
+      revenue: categories.map((_, index) => value(index + 13, 900, 100))
+    };
+  }
+  const groups = [];
+  for (let series = 0; series < seriesCount; series += 1) {
+    groups.push({
+      name: `Regional operating segment ${String.fromCharCode(65 + series)}`,
+      margins: categories.map((_, index) => value(index + series + 1, 60, 5)),
+      growth: categories.map((_, index) => value(index + series + 7, 45, -15)),
+      revenue: categories.map((_, index) => value(index + series + 13, 900, 100))
+    });
+  }
+  return { grouped: true, objects: options.objects ?? null, categories, groups };
+}
+
 // Power BI hands the visual an element inside a shadow root. The harness mirrors that
 // whenever the packaged stylesheet relies on :host, and can be forced either way so the
 // probe can prove which mode was used instead of assuming.
@@ -377,6 +412,7 @@ module.exports = {
   resolveBrowser,
   readPackageResources,
   buildDataView,
+  buildOverflowDataView,
   stylesheetNeedsShadowRoot,
   harnessHtml,
   runBrowser

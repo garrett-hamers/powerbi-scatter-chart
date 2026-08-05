@@ -70,6 +70,38 @@ selection state, the high-contrast palette, an RTL locale, and the reduced-motio
 preference. Results are written to `dist/layout-probe.json` and the command exits non-zero
 on any violation.
 
+### Overflow, scrolling and positioning
+
+Small viewports and overflowing content are different tests, and measuring only at rest
+hides a whole class of bug. A sibling repo's probe reported "no latent bugs" from a fixture
+whose content happened to fit its container:
+
+```
+scrollHeight 1114 === clientHeight 1114  ->  nothing scrolled
+```
+
+Nothing scrolled, so `position: sticky` never engaged, and three real defects stayed
+invisible behind assertions that all passed. So the probe also runs deliberately
+overflowing fixtures — 320 categories, up to 12 series — **scrolls every scrollable region**
+to its top, midpoint and maximum, and re-measures at each offset. A region declared
+scrollable must prove it is actually scrolling (`scrollHeight > clientHeight`) and must
+still be present in the measurements, so the suite fails loudly if a fixture stops
+overflowing rather than silently passing on a vacuous assertion.
+
+Positioning is checked explicitly. Every element whose computed `position` is not `static`
+is resolved to the ancestor that establishes its containing block. An absolutely positioned
+element with no positioned ancestor resolves against the initial containing block and
+escapes the root's `overflow: hidden` entirely, looking contained only by luck; `position:
+fixed` can never be clipped by the root at all; and `position: sticky` with no scrolling
+ancestor silently behaves as `position: relative`. Where sticky elements do exist, their
+bounding-rect `top` values after a scroll must be strictly increasing and all distinct,
+which is the cheap invariant that catches sticky headers pinning on top of each other.
+
+The verdict rules live in `scripts/layout-rules.cjs` as pure functions, so
+`tests/layout-rules.test.ts` can drive each one with the failure it exists to catch —
+including the sticky-collapse numbers from the sibling repo — rather than only with numbers
+this visual currently produces.
+
 `npm run prove-regressions` closes the loop on the regression tests: it reverts each layout
 fix individually in the working tree, re-runs `tests/layout.test.ts`, and requires the
 matching test to go red. A test that still passes with its fix reverted proves nothing, so
