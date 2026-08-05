@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+- Added a reference-resolution gate for the sample report. Two sibling repos' sample reports
+  would not open in Power BI Desktop because `report.json` declared a `SharedResources`
+  resource package pointing at `BaseThemes/CY24SU10.json` — a file that exists nowhere in
+  `samples/`, because CY24SU10 is a base theme built into Desktop. Naming it under
+  `themeCollection` is a reference to something the product already has; declaring it under
+  `resourcePackages` claims the file ships inside the report, so Desktop resolves the path,
+  finds nothing, and refuses to open with "Issues were found". Every sample JSON file in that
+  investigation validated against its declared `$schema` before *and* after the fix: a schema
+  constrains shape, not existence, so a path to a missing file is perfectly schema-valid.
+  This visual's sample report was the control that proved the diagnosis — it has the
+  byte-identical `themeCollection` block, no `SharedResources` package, and is the one sample
+  confirmed to open in Desktop — but nothing here *enforced* that. Injecting the defect into
+  `report.json` passed the whole suite, `publication-audit` and `certification-audit`, because
+  every existing check looked only at the one `CustomVisual` package it expected and never
+  iterated the rest. `npm run publication-audit` now resolves every path the report definition
+  claims to ship against disk, rejects a base theme declared as a shipped file, and reports an
+  unrecognised package type rather than passing over it. The rule lives in
+  `scripts/report-references.cjs` as a pure function so `tests/report-references.test.ts` can
+  drive it with deliberately broken definitions.
 - Bound the listing screenshots to the build that rendered them. The screenshot manifest added
   alongside the capture-time assertions recorded `capture.bundleSha256` and then nothing ever
   read it — a recorded value with nothing comparing it to reality, which is the same defect the
