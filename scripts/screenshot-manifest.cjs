@@ -36,12 +36,16 @@ const MANIFEST_NOTE =
   "the packaged bundle those images were rendered from. The audits compare both against the " +
   "committed files and the packaged visual, which catches a screenshot changing without its " +
   "capture being re-run and the visual changing without the screenshots being re-captured. " +
-  "Each scene sha256 pins the committed bytes its assertions were applied to. It must never be " +
-  "repurposed as a comparison against a freshly rendered image: the same scene rasterises " +
-  "differently across platforms, so a re-render comparison would be exactly the flaky " +
-  "golden-image diff this pipeline exists to avoid. Re-capture measured byte-identical over 30 " +
-  "consecutive runs on one Windows machine and browser build, but that is an observation about " +
-  "that environment, not a property anything here depends on.";
+  "Each scene sha256 pins the committed bytes its assertions were applied to, and must never be " +
+  "repurposed as a comparison against a freshly rendered image. The reason is not that " +
+  "re-rendering is unreliable: CI runs a different operating system, browser build and font " +
+  "stack, so comparing a fresh render against these hashes would be comparing across an axis " +
+  "nobody controls, and the Linux runner already produces materially different bytes for the " +
+  "same correct scene. Capture does happen to be bit-reproducible here - measured at 1 distinct " +
+  "hash over 5 runs per scene under 5 browser flag configurations, see " +
+  "scripts/screenshot-determinism-probe.cjs - but that is a property of this machine, browser " +
+  "build and drawn content, it differs between sibling repositories, and nothing here relies " +
+  "on it.";
 
 function relative(filePath) {
   return path.relative(root, filePath).split(path.sep).join("/");

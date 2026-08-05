@@ -33,18 +33,32 @@
   The note said "re-capturing on the same platform reproduces these bytes exactly", which is a
   claim about rasteriser behaviour sitting inside a file built to stop unverified claims — and a
   sibling repo measured the opposite on its own screenshots, with 6-15 pixels of 1,049,088
-  differing intermittently between identical runs. Measured here rather than reasoned about:
-  **30 consecutive captures with no repackaging produced one distinct outcome**, byte-identical
-  to the committed set every time. Ablating `--disable-gpu` changed all three image hashes but
-  stayed deterministic across a further 10 runs, so that flag alters rasterisation without being
-  the source of the stability. The claim therefore holds on this machine, but it is an
-  observation about one Windows host and browser build rather than a property the pipeline may
-  lean on: CI's Linux capture of scene 01 is 89,557 bytes against 66,320 here. The note now says
-  what each scene hash actually pins — the committed bytes its assertions were applied to — and
-  that it must never be repurposed as a comparison against a freshly rendered image, since that
-  would reintroduce the flaky golden-image diff the pipeline exists to avoid. `note` was the last
-  unasserted field in the manifest and is now compared like the rest, so a quiet rewrite of that
-  invariant fails the build.
+  differing intermittently between identical runs. Measured here rather than reasoned about, via
+  the new `npm run screenshots:determinism`: **every scene produced 1 distinct hash over 5
+  captures, under all 5 browser flag configurations tried**, each capture a fresh browser process
+  with a fresh profile. So the claim holds for this repository. It is still not something the
+  pipeline may lean on — sibling repos measure differently, so bit-reproducibility is
+  content- and build-dependent and has to be measured per repo rather than assumed in either
+  direction.
+- Fixed the *reasoning* the note gives, which matters more than the result. "Re-rendering is
+  unreliable" would have been a bad justification for pinning committed bytes, because it is
+  false on this machine, so a future reader who re-measured could reasonably delete the warning
+  and turn the scene hashes into a golden-image comparison. The note now gives the reason that
+  survives the measurement landing either way: CI runs a different operating system, browser
+  build and font stack, so comparing a fresh render against these hashes would be comparing
+  across an axis nobody controls. The Linux runner already captures scene 01 at 89,557 bytes
+  where the committed Windows capture is 66,320. `tests/screenshot-manifest.test.ts` asserts the
+  committed note still carries that reasoning, not merely that it is self-consistent.
+- Added `scripts/screenshot-determinism-probe.cjs` so the measurement behind that claim can be
+  repeated rather than taken on trust. It captures each scene N times per flag configuration
+  with a fresh browser and profile every time and reports **distinct hashes over N** rather than
+  pass/fail, because one identical pair proves nothing when the jitter it looks for is
+  intermittent by nature. It also separates two effects that are easy to conflate: dropping
+  `--disable-gpu` changed all three image hashes while remaining perfectly reproducible, so a
+  flag can change *what is drawn* without affecting *whether it reproduces*. `--font-render-hinting`
+  and `--force-color-profile` turned out to change neither on this content. The probe is a
+  diagnostic and is deliberately not wired into CI: nothing in the pipeline depends on renders
+  being reproducible.
 
 - Added capture-time content assertions to the listing screenshots, so a screenshot cannot be
   written unless the scene it claims to show actually rendered. Generation previously validated

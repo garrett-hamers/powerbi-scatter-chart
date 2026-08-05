@@ -377,22 +377,29 @@ ${probeScript ? `<script>\n${probeScript}\n</script>` : ""}
 `;
 }
 
-function runBrowser(browser, args, timeout = 120000) {
+// A fresh user-data-dir is minted and deleted around every launch, so no browser state
+// survives between captures. `drop` exists only for the determinism probe, which needs to
+// vary the standard flags to tell apart a flag that changes what is drawn from one that
+// changes whether the drawing reproduces.
+function runBrowser(browser, args, timeout = 120000, drop = []) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "atlyn-harness-"));
   // Hosted CI images run headless Chromium without a usable sandbox or a large /dev/shm.
   const ciFlags = process.env.CI ? ["--no-sandbox", "--disable-dev-shm-usage"] : [];
+  const standardFlags = [
+    "--headless=new",
+    "--disable-gpu",
+    "--disable-extensions",
+    "--disable-features=Translate,MediaRouter",
+    "--no-first-run",
+    "--no-default-browser-check",
+    "--hide-scrollbars",
+    "--force-device-scale-factor=1",
+    "--force-color-profile=srgb",
+    "--font-render-hinting=none"
+  ].filter((flag) => !drop.includes(flag));
   try {
     const result = spawnSync(browser, [
-      "--headless=new",
-      "--disable-gpu",
-      "--disable-extensions",
-      "--disable-features=Translate,MediaRouter",
-      "--no-first-run",
-      "--no-default-browser-check",
-      "--hide-scrollbars",
-      "--force-device-scale-factor=1",
-      "--force-color-profile=srgb",
-      "--font-render-hinting=none",
+      ...standardFlags,
       ...ciFlags,
       `--user-data-dir=${profile}`,
       ...args

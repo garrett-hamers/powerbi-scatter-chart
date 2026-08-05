@@ -115,12 +115,16 @@ test("a rewritten note is rejected", () => {
 });
 
 // Guards the invariant itself: the committed note has to keep saying that a scene hash pins
-// committed bytes rather than licensing a re-render diff, because the render is platform
-// dependent and CI captures materially different images from the committed ones.
+// committed bytes rather than licensing a re-render diff, and has to keep giving the reason
+// that survives the measurement landing either way. "Re-rendering is unreliable" would not:
+// it is false on this machine, so a future reader who re-measured could reasonably delete the
+// warning. "CI renders on an axis nobody controls" is true regardless.
 test("the committed note states that scene hashes are not a re-render comparison", () => {
   const note = String(committedManifest().note);
   assert.match(note, /pins the committed bytes/);
   assert.match(note, /never be repurposed as a comparison against a freshly rendered image/);
+  assert.match(note, /different operating system, browser build and font stack/);
+  assert.match(note, /nothing here relies\s+on it/);
 });
 
 test("a scene added to the generator but never captured is rejected", () => {
