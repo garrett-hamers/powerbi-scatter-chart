@@ -62,7 +62,7 @@ test("keeps accessibility presentation responsive to host preferences", () => {
     "isHighContrast",
     "prefers-reduced-motion",
     "data-reduced-motion",
-    "width < 280 || height < 190"
+    "isCompact(width, chartHeight)"
   ]) {
     assert.match(source, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }

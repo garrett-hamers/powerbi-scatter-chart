@@ -10,6 +10,16 @@ import {
   ScatterModel
 } from "./domain";
 import { buildFormattingModel, readVisualSettings, VisualSettings } from "./settings";
+import {
+  annotationFontSize,
+  clampMarkerRadius,
+  isCompact,
+  LayoutPlan,
+  planChromeRows,
+  planLayout,
+  planMargins,
+  truncateToWidth
+} from "./layout";
 
 type ISelectionManager = ReturnType<powerbi.extensibility.visual.IVisualHost["createSelectionManager"]>;
 type IVisual = powerbi.extensibility.visual.IVisual;
@@ -126,6 +136,31 @@ function setAttributes(element: Element, attributes: Record<string, string | num
   }
 }
 
+// SVG has no text-overflow, so chrome that would run past the plot has to be trimmed by
+// measurement. getComputedTextLength is exact once the node is in the live document; the
+// character estimate is only a fallback for hosts that render the visual detached.
+function measureTextWidth(element: SVGTextElement): number {
+  try {
+    const length = element.getComputedTextLength();
+    if (Number.isFinite(length) && length > 0) {
+      return length;
+    }
+  } catch {
+    // Not laid out yet; fall through to the estimate.
+  }
+  const fontSize = Number(element.getAttribute("font-size")) || 10;
+  return (element.textContent ?? "").length * fontSize * 0.55;
+}
+
+function fitText(element: SVGTextElement, maxWidth: number): void {
+  const full = element.textContent ?? "";
+  const fitted = truncateToWidth(full, maxWidth, (candidate) => {
+    element.textContent = candidate;
+    return measureTextWidth(element);
+  });
+  element.textContent = fitted;
+}
+
 function numericScale(value: number, min: number, max: number, outputMin: number, outputMax: number): number {
   const scale = Math.max(Math.abs(value), Math.abs(min), Math.abs(max), 1);
   const normalizedMin = min / scale;
@@ -237,6 +272,7 @@ export class Visual implements IVisual {
   private tooltipIdentityKey?: string;
   private tooltipIsTouch = false;
   private destroyed = false;
+  private chartWidth = 0;
 
   constructor(options?: VisualConstructorOptions) {
     if (!options) {
@@ -484,29 +520,43 @@ export class Visual implements IVisual {
     }
     const model = this.model;
     if (!model || records.length === 0) {
+      this.root.setAttribute("data-size", "micro");
       this.appendMessage(this.t("noData"));
       this.restoreFocus(focusKey);
       return;
     }
     if (model.validCount === 0) {
+      this.root.setAttribute("data-size", "micro");
       this.appendMessage(this.t("invalid"));
-      this.renderSemanticTable(model, settings.showSemanticTable);
+      this.renderSemanticTable(model, false, 0);
       this.restoreFocus(focusKey);
       return;
     }
     if (width < 80 || height < 80) {
+      this.root.setAttribute("data-size", "micro");
       this.appendMessage(this.t("compact"));
+      this.renderSemanticTable(model, false, 0);
       this.restoreFocus(focusKey);
       return;
     }
 
+    const plan = planLayout(width, height, settings);
+    const chartHeight = plan.chartHeight;
+    this.chartWidth = width;
+    this.root.setAttribute("data-size", plan.sizeClass);
     const svg = svgElement("svg");
     svg.classList.add("atlyn-scatter__svg");
     setAttributes(svg, {
-      viewBox: `0 0 ${width} ${height}`,
+      viewBox: `0 0 ${width} ${chartHeight}`,
+      width,
+      height: chartHeight,
+      preserveAspectRatio: "none",
       role: "img",
       "aria-label": this.summaryLabel(model),
-      direction: this.rtl ? "rtl" : "ltr",
+      // The SVG deliberately stays in an LTR coordinate space. Setting direction: rtl here
+      // would flip what text-anchor start/end mean, and every x coordinate below already
+      // mirrors itself explicitly, so the two flips would cancel out into overflow.
+      direction: "ltr",
       "data-reduced-motion": String(this.reducedMotion)
     });
     this.addListener(svg, "contextmenu", (event) => {
@@ -603,15 +653,14 @@ export class Visual implements IVisual {
     });
     this.root.appendChild(svg);
 
-    const compact = width < 280 || height < 190;
-    const margin = {
-      top: compact ? 40 : Math.max(34, Math.min(64, height * 0.12)),
-      right: compact ? 14 : Math.max(18, Math.min(56, width * 0.12)),
-      bottom: compact ? 30 : Math.max(36, Math.min(58, height * 0.14)),
-      left: compact ? 34 : Math.max(44, Math.min(72, width * 0.15))
-    };
+    // Chrome rows are laid out top-down from the ascender height so the first baseline
+    // cannot push its own glyphs above the viewport, and the plot starts below whatever
+    // chrome survived the size class.
+    const { annotationY, countsY, legendY, chromeBottom } = planChromeRows(width, plan);
+    const compact = isCompact(width, chartHeight);
+    const margin = planMargins(width, chartHeight, chromeBottom);
     const plotWidth = Math.max(20, width - margin.left - margin.right);
-    const plotHeight = Math.max(20, height - margin.top - margin.bottom);
+    const plotHeight = Math.max(20, chartHeight - margin.top - margin.bottom);
     const xExtent = extent(model.validPoints.map((point) => point.x), model.xThreshold.value);
     const yExtent = extent(model.validPoints.map((point) => point.y), model.yThreshold.value);
     const x = (value: number) => numericScale(
@@ -637,7 +686,7 @@ export class Visual implements IVisual {
     defs.appendChild(pattern);
     svg.appendChild(defs);
 
-    this.drawQuadrants(svg, model, x, y, xExtent, yExtent, margin, plotWidth, plotHeight, settings);
+    this.drawQuadrants(svg, model, x, y, xExtent, yExtent, margin, plotWidth, plotHeight, settings, plan);
     this.drawAxes(svg, x, y, xExtent, yExtent, margin, plotWidth, plotHeight, settings);
     if (settings.showRegression && model.regression.valid) {
       this.drawRegression(svg, model, x, y, xExtent);
@@ -672,19 +721,22 @@ export class Visual implements IVisual {
           gradientMin,
           gradientMax,
           model.hasHighlights,
-          settings
+          settings,
+          margin,
+          plotWidth,
+          plan
         );
       }
     });
-    if (settings.showLegend) {
-      this.drawLegend(svg, model, width, margin);
+    if (legendY !== undefined) {
+      this.drawLegend(svg, model, width, margin, legendY);
     }
-    this.drawAnnotations(svg, model, margin, width, settings.showRegression);
-    if (model.reduced || model.partialData || model.invalidRows > 0) {
+    this.drawAnnotations(svg, model, margin, width, settings.showRegression, annotationY, countsY);
+    if (plan.showDisclosure && (model.reduced || model.partialData || model.invalidRows > 0)) {
       const disclosure = svgElement("text");
       setAttributes(disclosure, {
         x: this.rtl ? width - margin.right : margin.left,
-        y: height - 8,
+        y: chartHeight - 8,
         "font-size": compact ? 8 : 10,
         fill: this.textColor(),
         "text-anchor": this.rtl ? "end" : "start"
@@ -700,8 +752,9 @@ export class Visual implements IVisual {
         `${this.t("rendered")} ${model.renderedCount}. ${reasons}`
       );
       svg.appendChild(disclosure);
+      fitText(disclosure, Math.max(0, width - margin.left - margin.right));
     }
-    this.renderSemanticTable(model, settings.showSemanticTable);
+    this.renderSemanticTable(model, plan.showTable, plan.tableHeight);
     this.restoreFocus(focusKey);
   }
 
@@ -723,7 +776,8 @@ export class Visual implements IVisual {
     margin: { top: number; right: number; bottom: number; left: number },
     plotWidth: number,
     plotHeight: number,
-    settings: VisualSettings
+    settings: VisualSettings,
+    plan: LayoutPlan
   ): void {
     const xMid = x(model.xThreshold.value);
     const yMid = y(model.yThreshold.value);
@@ -776,6 +830,9 @@ export class Visual implements IVisual {
           "aria-hidden": "true"
         });
         svg.appendChild(hatch);
+        if (!plan.showQuadrantLabels || item.width < 34) {
+          return;
+        }
         const label = svgElement("text");
         setAttributes(label, {
           x: this.rtl ? item.x + item.width - 7 : item.x + 7,
@@ -786,6 +843,7 @@ export class Visual implements IVisual {
         });
         setText(label, `${this.quadrantLabel(item.quadrant)} (${model.counts[item.quadrant]})`);
         svg.appendChild(label);
+        fitText(label, Math.max(0, item.width - 14));
       });
     }
     const xLine = svgElement("line");
@@ -809,7 +867,7 @@ export class Visual implements IVisual {
       "stroke-width": 1
     });
     svg.append(xLine, yLine);
-    if (settings.showThresholdLabels) {
+    if (plan.showThresholdLabels) {
       const xLabel = svgElement("text");
       setAttributes(xLabel, {
         x: this.rtl ? xMid - 4 : xMid + 4,
@@ -829,6 +887,8 @@ export class Visual implements IVisual {
       });
       setText(yLabel, `${this.t("threshold")} ${this.formatValue(model.yThreshold.value)}`);
       svg.append(xLabel, yLabel);
+      fitText(xLabel, Math.max(0, this.rtl ? xMid - 4 - margin.left : margin.left + plotWidth - xMid - 4));
+      fitText(yLabel, Math.max(0, plotWidth - 8));
     }
   }
 
@@ -905,6 +965,13 @@ export class Visual implements IVisual {
     });
     setText(yEnd, this.formatValue(yExtent[1]));
     svg.append(xStart, xEnd, yStart, yEnd);
+    // Axis extremes are anchored at the plot edge, so the space available runs back toward
+    // the nearest root edge; a long formatted number would otherwise leave the viewport.
+    fitText(xStart, Math.max(0, this.rtl ? x(xExtent[0]) : plotWidth));
+    fitText(xEnd, Math.max(0, this.rtl ? plotWidth : x(xExtent[1])));
+    const sideRoom = this.rtl ? Math.max(0, this.chartWidth - yAxisX - 6) : Math.max(0, yAxisX - 6);
+    fitText(yStart, sideRoom);
+    fitText(yEnd, sideRoom);
   }
 
   private drawRegression(
@@ -943,12 +1010,18 @@ export class Visual implements IVisual {
     gradientMin: number,
     gradientMax: number,
     hasHighlights: boolean,
-    settings: VisualSettings
+    settings: VisualSettings,
+    margin: { top: number; right: number; bottom: number; left: number },
+    plotWidth: number,
+    plan: LayoutPlan
   ): void {
     const circle = svgElement("circle");
-    const radius = point.size === undefined
+    const rawRadius = point.size === undefined
       ? Math.max(settings.minMarkerSize, 5)
       : numericScale(point.size, sizeMin, sizeMax, settings.minMarkerSize, settings.maxMarkerSize);
+    // Cap the marker against the surrounding margins so a focus ring on an extreme point
+    // cannot push its outline outside the clipped root on a small tile.
+    const radius = clampMarkerRadius(rawRadius, margin);
     const highContrast = this.host.colorPalette.isHighContrast;
     const selected = point.identityKey !== undefined && this.selectedKeys.has(point.identityKey);
     const fill = highContrast
@@ -982,10 +1055,17 @@ export class Visual implements IVisual {
     svg.appendChild(circle);
 
     const stride = Math.max(1, Math.round(100 / settings.labelDensity));
-    if (settings.showLabels && index % stride === 0) {
+    if (plan.showDataLabels && index % stride === 0) {
+      const labelX = x(point.x) + (this.rtl ? -radius - 2 : radius + 2);
+      const room = this.rtl
+        ? labelX - margin.left
+        : margin.left + plotWidth - labelX;
+      if (room < 12) {
+        return;
+      }
       const label = svgElement("text");
       setAttributes(label, {
-        x: x(point.x) + (this.rtl ? -radius - 2 : radius + 2),
+        x: labelX,
         y: y(point.y) - radius - 2,
         "font-size": 10,
         fill: this.textColor(),
@@ -993,6 +1073,7 @@ export class Visual implements IVisual {
       });
       setText(label, point.category);
       svg.appendChild(label);
+      fitText(label, room);
     }
   }
 
@@ -1000,36 +1081,71 @@ export class Visual implements IVisual {
     svg: SVGSVGElement,
     model: ScatterModel,
     width: number,
-    margin: { top: number; right: number; bottom: number; left: number }
+    margin: { top: number; right: number; bottom: number; left: number },
+    baselineY: number
   ): void {
     const seriesValues = [...new Set(model.points.map((point) => point.series).filter((value): value is string => value !== undefined))];
     seriesValues.sort(compareText);
     if (seriesValues.length === 0) {
       return;
     }
-    seriesValues.forEach((series, index) => {
-      const x = this.rtl ? width - margin.right - index * 96 : margin.left + index * 96;
-      const marker = svgElement("circle");
-      setAttributes(marker, {
-        cx: x,
-        cy: margin.top - 12,
-        r: 4,
-        fill: this.host.colorPalette.isHighContrast ? this.host.colorPalette.background.value : this.colorFor({ series, gradient: undefined }, index, 0, 1),
-        stroke: this.host.colorPalette.isHighContrast ? this.host.colorPalette.foreground.value : "currentColor",
-        "stroke-width": 1
-      });
-      svg.appendChild(marker);
+    // Chips are placed by measured width and stop at the edge of the plot. A fixed stride
+    // marches later series straight out of the clipped viewport as the tile narrows.
+    const available = Math.max(0, width - margin.left - margin.right);
+    const startX = this.rtl ? width - margin.right : margin.left;
+    const radius = 4;
+    const gap = 12;
+    let cursor = 0;
+    let placed = 0;
+    for (let index = 0; index < seriesValues.length; index += 1) {
+      const series = seriesValues[index];
       const label = svgElement("text");
       setAttributes(label, {
-        x: x + (this.rtl ? -8 : 8),
-        y: margin.top - 8,
         "font-size": 10,
         fill: this.textColor(),
         "text-anchor": this.rtl ? "end" : "start"
       });
       setText(label, series);
       svg.appendChild(label);
-    });
+      const labelWidth = measureTextWidth(label);
+      const chipWidth = radius * 2 + 4 + labelWidth;
+      const reserve = index < seriesValues.length - 1 ? 32 : 0;
+      if (placed > 0 && cursor + chipWidth > available - reserve) {
+        svg.removeChild(label);
+        break;
+      }
+      const markerX = this.rtl ? startX - cursor - radius : startX + cursor + radius;
+      const marker = svgElement("circle");
+      setAttributes(marker, {
+        cx: markerX,
+        cy: baselineY - 3,
+        r: radius,
+        fill: this.host.colorPalette.isHighContrast ? this.host.colorPalette.background.value : this.colorFor({ series, gradient: undefined }, index, 0, 1),
+        stroke: this.host.colorPalette.isHighContrast ? this.host.colorPalette.foreground.value : "currentColor",
+        "stroke-width": 1
+      });
+      svg.insertBefore(marker, label);
+      setAttributes(label, {
+        x: this.rtl ? markerX - radius - 4 : markerX + radius + 4,
+        y: baselineY
+      });
+      fitText(label, Math.max(0, available - cursor - radius * 2 - 4 - reserve));
+      cursor += chipWidth + gap;
+      placed += 1;
+    }
+    if (placed < seriesValues.length) {
+      const more = svgElement("text");
+      setAttributes(more, {
+        x: this.rtl ? startX - cursor : startX + cursor,
+        y: baselineY,
+        "font-size": 10,
+        fill: this.textColor(),
+        "text-anchor": this.rtl ? "end" : "start"
+      });
+      setText(more, `+${seriesValues.length - placed}`);
+      svg.appendChild(more);
+      fitText(more, Math.max(0, available - cursor));
+    }
   }
 
   private drawAnnotations(
@@ -1037,48 +1153,63 @@ export class Visual implements IVisual {
     model: ScatterModel,
     margin: { top: number; right: number; bottom: number; left: number },
     width: number,
-    showRegression: boolean
+    showRegression: boolean,
+    annotationY: number | undefined,
+    countsY: number | undefined
   ): void {
+    const available = Math.max(0, width - margin.left - margin.right);
+    const anchorX = this.rtl ? width - margin.right : margin.left;
     const group = svgElement("g");
-    const annotation = svgElement("text");
-    setAttributes(annotation, {
-      x: this.rtl ? width - margin.right : margin.left,
-      y: 16,
-      "font-size": Math.min(13, Math.max(10, width / 80)),
-      fill: this.textColor(),
-      "text-anchor": this.rtl ? "end" : "start"
-    });
-    const regressionText = showRegression
-      ? model.regression.valid
-        ? `${this.t("regression")}: ${model.regression.equation}; R2 ${this.formatValue(model.regression.r2 ?? 0)}; n=${model.regression.n}`
-        : `${this.t("regression")}: ${this.t("unavailable")} (${model.regression.reason ?? ""})`
-      : "";
-    setText(annotation, `${model.xThreshold.provenance}; ${model.yThreshold.provenance}. ${regressionText}`);
-    group.appendChild(annotation);
-    const countText = svgElement("text");
-    setAttributes(countText, {
-      x: this.rtl ? width - margin.right : margin.left,
-      y: 30,
-      "font-size": 10,
-      fill: this.textColor(),
-      "text-anchor": this.rtl ? "end" : "start"
-    });
-    const selectedSummary = this.selectedKeys.size ? ` · ${this.t("selected")} ${this.selectedKeys.size}` : "";
-    setText(
-      countText,
-      `${this.quadrantLabel("upper-right")}: ${model.counts["upper-right"]} · ` +
-      `${this.quadrantLabel("upper-left")}: ${model.counts["upper-left"]} · ` +
-      `${this.quadrantLabel("lower-left")}: ${model.counts["lower-left"]} · ` +
-      `${this.quadrantLabel("lower-right")}: ${model.counts["lower-right"]} · ` +
-      `${model.boundaryCount} ${this.t("boundary")}${selectedSummary}`
-    );
-    group.appendChild(countText);
     svg.appendChild(group);
+    if (annotationY !== undefined) {
+      const annotation = svgElement("text");
+      setAttributes(annotation, {
+        x: anchorX,
+        y: annotationY,
+        "font-size": annotationFontSize(width),        fill: this.textColor(),
+        "text-anchor": this.rtl ? "end" : "start"
+      });
+      const regressionText = showRegression
+        ? model.regression.valid
+          ? `${this.t("regression")}: ${model.regression.equation}; R2 ${this.formatValue(model.regression.r2 ?? 0)}; n=${model.regression.n}`
+          : `${this.t("regression")}: ${this.t("unavailable")} (${model.regression.reason ?? ""})`
+        : "";
+      setText(annotation, `${model.xThreshold.provenance}; ${model.yThreshold.provenance}. ${regressionText}`);
+      group.appendChild(annotation);
+      fitText(annotation, available);
+    }
+    if (countsY !== undefined) {
+      const countText = svgElement("text");
+      setAttributes(countText, {
+        x: anchorX,
+        y: countsY,
+        "font-size": 10,
+        fill: this.textColor(),
+        "text-anchor": this.rtl ? "end" : "start"
+      });
+      const selectedSummary = this.selectedKeys.size ? ` · ${this.t("selected")} ${this.selectedKeys.size}` : "";
+      setText(
+        countText,
+        `${this.quadrantLabel("upper-right")}: ${model.counts["upper-right"]} · ` +
+        `${this.quadrantLabel("upper-left")}: ${model.counts["upper-left"]} · ` +
+        `${this.quadrantLabel("lower-left")}: ${model.counts["lower-left"]} · ` +
+        `${this.quadrantLabel("lower-right")}: ${model.counts["lower-right"]} · ` +
+        `${model.boundaryCount} ${this.t("boundary")}${selectedSummary}`
+      );
+      group.appendChild(countText);
+      fitText(countText, available);
+    }
   }
 
-  private renderSemanticTable(model: ScatterModel, visible: boolean): void {
+  private renderSemanticTable(model: ScatterModel, visible: boolean, maxHeight: number): void {
+    const wrapper = htmlElement("div");
+    wrapper.className = `atlyn-scatter__table${visible ? "" : " atlyn-scatter__table--visually-hidden"}`;
+    if (visible) {
+      wrapper.style.height = `${maxHeight}px`;
+      wrapper.style.maxHeight = `${maxHeight}px`;
+    }
     const table = htmlElement("table");
-    table.className = `atlyn-scatter__semantic-table${visible ? "" : " atlyn-scatter__semantic-table--visually-hidden"}`;
+    table.className = "atlyn-scatter__semantic-table";
     const caption = htmlElement("caption");
     setText(caption, `${this.t("semanticTable")} (${this.t("rendered")} ${model.renderedCount})`);
     table.appendChild(caption);
@@ -1104,7 +1235,8 @@ export class Visual implements IVisual {
       body.appendChild(row);
     });
     table.appendChild(body);
-    this.root.appendChild(table);
+    wrapper.appendChild(table);
+    this.root.appendChild(wrapper);
   }
 
   private pointLabel(point: ClassifiedPoint): string {

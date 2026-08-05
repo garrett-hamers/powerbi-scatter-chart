@@ -1,5 +1,50 @@
 # Changelog
 
+## Unreleased
+
+- Fixed the accessible point table rendering entirely outside the visual. `showSemanticTable`
+  defaults to `true`, and the table was appended after an SVG with `height: 100%` inside an
+  `overflow: hidden` root, so it stacked past the bottom edge. Measured on the packaged
+  1.0.1.0 bundle, the table was 528px tall with **0px inside the visual at 1280x620**, 528px
+  with 0px visible at 398x298, 813px with 0px visible at 258x198, and 918px with 0px visible
+  at 178x138 — the shipped default hid the entire accessible data table at every tile size.
+  The `max-height: 180px` and `overflow: auto` meant to contain it were declared on the
+  `<table>` itself, and browsers ignore both on a `display: table` box, so no scroll
+  container ever existed. The root is now a flex column in which every stacked region sets
+  `min-height: 0`, the table lives in a real `overflow: auto` wrapper, and the chart is given
+  an explicit pixel height so its `viewBox` stays 1:1. The table now measures 180px visible at
+  1280x620, 101px at 398x298 and 67px at 258x198.
+- Fixed SVG chrome marching out of the clipped viewport as the tile narrowed. The provenance
+  and regression line measured 550px wide inside a 398px tile (211px clipped) and 550px inside
+  an 80px tile (503px clipped); the quadrant-count summary measured 335px inside a 258px tile.
+  Legend chips used a fixed 96px stride regardless of width, so at 258x198 three of four series
+  sat entirely outside the visual. Chrome text is now trimmed to its measured available width
+  with `getComputedTextLength()`, and legend chips are placed by measured width with a `+N`
+  overflow marker.
+- Added viewport size classes (`regular`, `narrow`, `short`, `micro`, surfaced as `data-size`
+  on the root) that drop decorative chrome first. The verbose provenance line goes at narrow
+  or short sizes; the quadrant counts, legend, quadrant labels, threshold labels, data labels
+  and the disclosure line all go at micro sizes. The chart always survives, and the accessible
+  point table stays in the accessibility tree at every size — below 200x170 it degrades to its
+  screen-reader-only form rather than being silently clipped.
+- Fixed right-to-left rendering. `direction: rtl` was set on the `<svg>` while every x
+  coordinate already mirrored itself explicitly, so the two flips cancelled and pushed chrome
+  out of the viewport — 656px of overflow at 1280x620 and 194px at 258x198 in an `ar-SA`
+  locale. The SVG now stays in an LTR coordinate space; the HTML root keeps `dir` so the
+  accessible table still reads right-to-left.
+- Capped the marker radius against the surrounding margins so a focused point on the edge of
+  the plot cannot push its 2px focus ring with 2px offset outside the clipped root on a small
+  tile. Large tiles are unaffected.
+- Added `npm run layout-probe`, which measures real `getBoundingClientRect()` geometry of the
+  packaged bundle and packaged stylesheet across 8 scenarios and 5 viewports, including
+  keyboard focus, selection, high contrast, RTL and reduced motion. Added
+  `npm run prove-regressions`, which reverts each fix individually and requires the matching
+  test to fail. Both run in CI.
+- Extracted the layout policy to `src/layout.ts` so it can be asserted directly instead of by
+  matching source text, and added `tests/layout.test.ts`.
+- Re-captured the three AppSource listing screenshots, which predated the layout fix and did
+  not show the accessible point table. They remain exactly 1366x768 and well under 1024 KB.
+
 ## 1.0.1.0
 
 - Bumped the visual version from `1.0.0.0` to `1.0.1.0` (`package.json` `1.0.1`). The AppSource
