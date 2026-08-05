@@ -1,0 +1,500 @@
+{
+  "generatedBy": "scripts/generate-screenshots.cjs",
+  "note": "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time assertions measured and the SHA-256 of the PNG that capture wrote. The audits re-hash the committed files against these values, which detects a screenshot being changed without the capture that vouches for it being re-run. This is a hash comparison, not a pixel diff. Re-capturing on the same platform reproduces these bytes exactly.",
+  "visual": {
+    "name": "atlynScatter",
+    "version": "1.0.1.0",
+    "guid": "atlynScatter"
+  },
+  "capture": {
+    "tile": {
+      "width": 1366,
+      "height": 768
+    },
+    "bundle": "atlynScatter.1.0.1.0.pbiviz",
+    "bundleSha256": "f77138f49d20c0d3ad4e6d501845bd513d9ee9136290093acd58941f8e6f534f",
+    "bundleOrigin": "resources/atlynScatter.pbiviz.json",
+    "bundleJsBytes": 41830,
+    "bundleCssBytes": 1757
+  },
+  "scenes": [
+    {
+      "file": "01-quadrant-overview.png",
+      "caption": "Default median thresholds with quadrant shading, regression line and bubble sizing.",
+      "png": {
+        "width": 1366,
+        "height": 768,
+        "bytes": 66320,
+        "sha256": "d9e3ba09fdc35d46b21110fb133fdd140928ade89e2217ee1826a5059e13a069"
+      },
+      "assertions": [
+        {
+          "metric": "rootWidth",
+          "expected": "equals 1366",
+          "measured": 1366
+        },
+        {
+          "metric": "rootHeight",
+          "expected": "equals 768",
+          "measured": 768
+        },
+        {
+          "metric": "elementsEscapingRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "svgPresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "svgVisibleHeight",
+          "expected": "at least 400",
+          "measured": 588
+        },
+        {
+          "metric": "points",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "pointsOutsideRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "pointsFullyVisible",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "distinctPointRadii",
+          "expected": "at least 10",
+          "measured": 26
+        },
+        {
+          "metric": "quadrantBands",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "quadrantHatches",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "quadrantBandAreaRatio",
+          "expected": "at least 0.3",
+          "measured": 0.55
+        },
+        {
+          "metric": "quadrantLabels",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "thresholdLines",
+          "expected": "equals 2",
+          "measured": 2
+        },
+        {
+          "metric": "thresholdLabelTexts",
+          "expected": "every entry matching /^threshold -?[\\d.,]+$/",
+          "measured": [
+            "threshold 28.2",
+            "threshold 10.75"
+          ]
+        },
+        {
+          "metric": "regressionLines",
+          "expected": "equals 1",
+          "measured": 1
+        },
+        {
+          "metric": "annotationTexts",
+          "expected": "at least one entry matching /X threshold: median of \\d+ visible points/",
+          "measured": [
+            "X threshold: median of 26 visible points; Y threshold: median of 26 visible points. Regression: y = 1.12x - 21.76; R2 0.66; n=26",
+            "Upper right: 10 · Upper left: 3 · Lower left: 10 · Lower right: 3 · 0 on threshold"
+          ]
+        },
+        {
+          "metric": "legendMarkers",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "dataLabels",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tablePresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "tableHiddenChain",
+          "expected": "equals false",
+          "measured": false
+        },
+        {
+          "metric": "tableRenderedHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleWidth",
+          "expected": "at least 400",
+          "measured": 1366
+        },
+        {
+          "metric": "tableBodyRows",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "tableVisibleRows",
+          "expected": "at least 4",
+          "measured": 8
+        },
+        {
+          "metric": "tableEscapesRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableRowsEscapingWrapper",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableHeaderCells",
+          "expected": "equals 5",
+          "measured": 5
+        },
+        {
+          "metric": "tableCaptionText",
+          "expected": "at least one entry matching /^Accessible point table \\(rendered \\d+\\)$/",
+          "measured": "Accessible point table (rendered 26)"
+        }
+      ]
+    },
+    {
+      "file": "02-series-and-size.png",
+      "caption": "Grouped series with legend, size-encoded bubbles and per-series colouring.",
+      "png": {
+        "width": 1366,
+        "height": 768,
+        "bytes": 71197,
+        "sha256": "4bfcb71bd1efb8a23b961c197594687af18438dc916237a5f5780b50c2d67cc0"
+      },
+      "assertions": [
+        {
+          "metric": "rootWidth",
+          "expected": "equals 1366",
+          "measured": 1366
+        },
+        {
+          "metric": "rootHeight",
+          "expected": "equals 768",
+          "measured": 768
+        },
+        {
+          "metric": "elementsEscapingRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "svgPresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "svgVisibleHeight",
+          "expected": "at least 400",
+          "measured": 588
+        },
+        {
+          "metric": "points",
+          "expected": "equals 32",
+          "measured": 32
+        },
+        {
+          "metric": "pointsOutsideRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "pointsFullyVisible",
+          "expected": "equals 32",
+          "measured": 32
+        },
+        {
+          "metric": "distinctPointFills",
+          "expected": "at least 4",
+          "measured": 4
+        },
+        {
+          "metric": "distinctPointRadii",
+          "expected": "at least 10",
+          "measured": 32
+        },
+        {
+          "metric": "legendMarkers",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "legendLabelTexts",
+          "expected": "exactly the set [\"Asia Pacific\",\"Europe\",\"Latin America\",\"North America\"]",
+          "measured": [
+            "Asia Pacific",
+            "Europe",
+            "Latin America",
+            "North America"
+          ]
+        },
+        {
+          "metric": "quadrantBands",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "quadrantHatches",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "thresholdLines",
+          "expected": "equals 2",
+          "measured": 2
+        },
+        {
+          "metric": "regressionLines",
+          "expected": "equals 1",
+          "measured": 1
+        },
+        {
+          "metric": "dataLabels",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tablePresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "tableHiddenChain",
+          "expected": "equals false",
+          "measured": false
+        },
+        {
+          "metric": "tableRenderedHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleWidth",
+          "expected": "at least 400",
+          "measured": 1366
+        },
+        {
+          "metric": "tableBodyRows",
+          "expected": "equals 32",
+          "measured": 32
+        },
+        {
+          "metric": "tableVisibleRows",
+          "expected": "at least 4",
+          "measured": 8
+        },
+        {
+          "metric": "tableEscapesRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableRowsEscapingWrapper",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableHeaderCells",
+          "expected": "equals 5",
+          "measured": 5
+        },
+        {
+          "metric": "tableCaptionText",
+          "expected": "at least one entry matching /^Accessible point table \\(rendered \\d+\\)$/",
+          "measured": "Accessible point table (rendered 32)"
+        }
+      ]
+    },
+    {
+      "file": "03-benchmark-thresholds.png",
+      "caption": "Explicit benchmark thresholds with data labels turned on.",
+      "png": {
+        "width": 1366,
+        "height": 768,
+        "bytes": 90337,
+        "sha256": "e9febbdbed98dec15ddbd1d58c62e65e06a3e86ad88bae2f7f2ed0defc1a96e4"
+      },
+      "assertions": [
+        {
+          "metric": "rootWidth",
+          "expected": "equals 1366",
+          "measured": 1366
+        },
+        {
+          "metric": "rootHeight",
+          "expected": "equals 768",
+          "measured": 768
+        },
+        {
+          "metric": "elementsEscapingRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "svgPresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "svgVisibleHeight",
+          "expected": "at least 400",
+          "measured": 588
+        },
+        {
+          "metric": "points",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "pointsOutsideRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "pointsFullyVisible",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "thresholdLines",
+          "expected": "equals 2",
+          "measured": 2
+        },
+        {
+          "metric": "thresholdLabelTexts",
+          "expected": "exactly the set [\"threshold 10\",\"threshold 30\"]",
+          "measured": [
+            "threshold 30",
+            "threshold 10"
+          ]
+        },
+        {
+          "metric": "annotationTexts",
+          "expected": "at least one entry matching /X threshold: benchmark 30; Y threshold: benchmark 10/",
+          "measured": [
+            "X threshold: benchmark 30; Y threshold: benchmark 10. Regression: y = 1.12x - 21.76; R2 0.66; n=26",
+            "Upper right: 10 · Upper left: 3 · Lower left: 12 · Lower right: 1 · 0 on threshold"
+          ]
+        },
+        {
+          "metric": "dataLabels",
+          "expected": "at least 20",
+          "measured": 26
+        },
+        {
+          "metric": "quadrantBands",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "quadrantHatches",
+          "expected": "equals 4",
+          "measured": 4
+        },
+        {
+          "metric": "regressionLines",
+          "expected": "equals 1",
+          "measured": 1
+        },
+        {
+          "metric": "legendMarkers",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tablePresent",
+          "expected": "equals true",
+          "measured": true
+        },
+        {
+          "metric": "tableHiddenChain",
+          "expected": "equals false",
+          "measured": false
+        },
+        {
+          "metric": "tableRenderedHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleHeight",
+          "expected": "at least 120",
+          "measured": 180
+        },
+        {
+          "metric": "tableVisibleWidth",
+          "expected": "at least 400",
+          "measured": 1366
+        },
+        {
+          "metric": "tableBodyRows",
+          "expected": "equals 26",
+          "measured": 26
+        },
+        {
+          "metric": "tableVisibleRows",
+          "expected": "at least 4",
+          "measured": 8
+        },
+        {
+          "metric": "tableEscapesRoot",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableRowsEscapingWrapper",
+          "expected": "equals 0",
+          "measured": 0
+        },
+        {
+          "metric": "tableHeaderCells",
+          "expected": "equals 5",
+          "measured": 5
+        },
+        {
+          "metric": "tableCaptionText",
+          "expected": "at least one entry matching /^Accessible point table \\(rendered \\d+\\)$/",
+          "measured": "Accessible point table (rendered 26)"
+        }
+      ]
+    }
+  ]
+}

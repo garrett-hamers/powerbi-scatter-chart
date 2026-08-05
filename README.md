@@ -141,7 +141,32 @@ npm run package && npm run generate-sample-report
 Microsoft Edge or Google Chrome against a mock host and hard-coded offline sample data, then
 captures PNGs at exactly 1366x768. It requires a locally installed Chromium-based browser
 (override the path with `ATLYN_BROWSER`) and fails loudly rather than producing placeholder
-images. This step is local and on demand; CI only validates the committed PNGs.
+images.
+
+Every scene is asserted **at capture time**, because the size and format of a PNG say nothing
+about whether the right thing was drawn. A single browser run emits both the screenshot and a
+probe of the same frame, each scene declares what it must contain, and the image is staged in
+`.tmp/` until its own assertions pass; a scene that fails takes any stale published image with
+it rather than leaving one in place looking current. Claims about the accessible data table are
+deliberately geometry rather than presence — rendered height, rows inside the visual root —
+because that table was present in the DOM throughout the period it rendered at zero height and
+its screenshots shipped showing nothing. See
+[`scripts/screenshot-assertions.cjs`](scripts/screenshot-assertions.cjs).
+
+CI runs `npm run screenshots:check`, which captures and asserts every scene without touching
+`assets/screenshots`, so a scene that stops rendering fails the build while the runner's font
+stack cannot churn the committed images.
+
+Capture-time assertions prove a file was right *when written*, and are then gone. So a publish
+run also records what it measured, and the SHA-256 of every image it wrote, into the committed
+[`assets/screenshot-manifest.json`](assets/screenshot-manifest.json). Both
+`npm run screenshots:check` and `npm run publication-audit` re-hash the committed PNGs against
+that record, which catches a screenshot being hand-edited, reverted or swapped without the
+capture that vouches for it being re-run, and rejects a committed screenshot that no scene
+vouches for at all. This is a hash comparison, not a pixel diff, so it is dependency-free and
+cannot flake on Chrome versions, font availability or rasteriser changes. The recorded values
+are the measured numbers rather than a pass flag, because `tableVisibleHeight: 180` next to
+`at least 120` is reviewable months later and "assertions passed" is not.
 
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR

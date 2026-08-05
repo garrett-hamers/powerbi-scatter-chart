@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { buildAssets, decodePng } = require("./generate-brand-assets.cjs");
+const { verifyCommittedScreenshots, readManifest, manifestPath, relative: manifestRelative } = require("./screenshot-manifest.cjs");
 
 const root = path.resolve(__dirname, "..");
 const screenshotDirectory = path.join(root, "assets", "screenshots");
@@ -143,6 +144,18 @@ function auditScreenshots() {
     results.push(header);
   }
   return results;
+}
+
+// The dimension and byte-cap checks above describe the *file*, and a screenshot of entirely
+// the wrong scene satisfies them. What proves a committed image is the one its capture-time
+// assertions vouched for is that it still hashes to the value that capture recorded, so that
+// is checked here, where the committed files are already being read.
+function auditScreenshotManifest() {
+  for (const problem of verifyCommittedScreenshots()) {
+    blockers.push(problem);
+  }
+  const { manifest } = readManifest();
+  return manifest;
 }
 
 function auditManifest() {
@@ -313,6 +326,7 @@ function auditSampleReport() {
 const manifest = auditManifest();
 const brandAssets = buildAssets().map(auditBrandAsset).filter(Boolean);
 const screenshots = auditScreenshots();
+const screenshotManifest = auditScreenshotManifest();
 const sampleReport = auditSampleReport();
 auditSubmissionDocuments();
 
@@ -323,6 +337,9 @@ if (blockers.length > 0) {
 console.log("Publication audit passed.");
 for (const asset of [...brandAssets, ...screenshots]) {
   console.log(`  ${asset.relativePath} ${asset.width}x${asset.height} ${asset.bytes} bytes sha256=${asset.sha256}`);
+}
+for (const scene of screenshotManifest?.scenes ?? []) {
+  console.log(`  ${manifestRelative(manifestPath)} vouches for ${scene.file} with ${scene.assertions.length} recorded assertions, sha256=${scene.png.sha256}`);
 }
 console.log(`  sample report ${sampleReport.relativePath} embedding visual ${sampleReport.embeddedVersion}`);
 console.log(`  support URL ${manifest.visual.supportUrl}`);

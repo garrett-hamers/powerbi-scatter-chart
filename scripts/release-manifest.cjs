@@ -92,7 +92,10 @@ const releaseManifest = {
   assets: {
     visualIcon: fileMetadata(manifest.assets.icon),
     partnerCenterLogo300x300: fileMetadata(path.join("assets", "partner-center-logo-300x300.png")),
-    screenshots1366x768: screenshots
+    screenshots1366x768: screenshots,
+    // The record that ties each committed screenshot back to the capture run whose
+    // assertions vouched for it, so the release manifest pins the vouching too.
+    screenshotManifest: fileMetadata("assets/screenshot-manifest.json")
   },
   hashPolicy: "PBIVIZ ZIP entries are sorted and normalized to a fixed UTC-anchored DOS timestamp, DEFLATE level 9, and DOS platform metadata before hashing, so the hash does not depend on the build machine's timezone or platform."
 };

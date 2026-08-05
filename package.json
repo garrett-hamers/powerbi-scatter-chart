@@ -18,6 +18,7 @@
     "generate-brand-assets": "node scripts/generate-brand-assets.cjs",
     "generate-sample-report": "node scripts/generate-sample-report.cjs",
     "screenshots": "node scripts/generate-screenshots.cjs",
+    "screenshots:check": "node scripts/generate-screenshots.cjs --check",
     "layout-probe": "node scripts/layout-probe.cjs",
     "prove-regressions": "node scripts/prove-regressions.cjs",
     "release-manifest": "node scripts/release-manifest.cjs",

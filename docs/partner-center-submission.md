@@ -85,7 +85,12 @@ The screenshots are **real captures of the built visual**, not mock-ups. The pip
 1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.1.0.pbiviz`;
 2. loads it in a self-contained HTML page with a mock `IVisualHost` and a hard-coded, fully
    offline categorical `DataView` (no network access, no randomness);
-3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768.
+3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768, and in
+   the same browser run probes the frame that was photographed;
+4. checks that frame against the scene's own declared expectations and only then publishes the
+   PNG into `assets/screenshots/`;
+5. records the values it measured and the SHA-256 of every image it wrote into the committed
+   [`assets/screenshot-manifest.json`](../assets/screenshot-manifest.json).
 
 ```text
 npm run package
@@ -94,11 +99,35 @@ npm run screenshots
 
 The script fails loudly if no Chromium-based browser is available. It never fabricates images.
 
-| Screenshot | What it shows |
-| --- | --- |
-| `01-quadrant-overview.png` | Default median thresholds, quadrant shading with counts, OLS trend line with equation and R-squared, size-encoded bubbles, threshold provenance line. |
-| `02-series-and-size.png` | Grouped series (four regions) with legend, host-assigned per-series colours, and size-encoded bubbles. |
-| `03-benchmark-thresholds.png` | Explicit benchmark thresholds (X = 30, Y = 10) with category data labels enabled. |
+A 1366 x 768 PNG under 1024 KB can still be a picture of the wrong thing: these listing images
+were once captured while the accessible data table laid out at zero visible height, and they
+shipped showing no table because nothing checked content. Step 4 closes that gap. Each scene
+below carries per-scene assertions, so scene 3 fails if the benchmark thresholds are missing
+even when all 26 points plot correctly, and every scene fails if the accessible table is not
+measurably visible inside the visual root. A failing scene is never written, and any stale
+image already published for it is removed. CI runs the same capture and assertions via
+`npm run screenshots:check`, which leaves `assets/screenshots/` untouched.
+
+| Screenshot | What it shows | Asserted at capture |
+| --- | --- | --- |
+| `01-quadrant-overview.png` | Default median thresholds, quadrant shading with counts, OLS trend line with equation and R-squared, size-encoded bubbles, threshold provenance line. | 26 points fully inside the root, 4 shaded quadrants + 4 hatch overlays covering >= 30% of the tile, 4 quadrant labels, 2 median guides, 1 regression line, median provenance text, no legend, no data labels, >= 10 distinct bubble radii. |
+| `02-series-and-size.png` | Grouped series (four regions) with legend, host-assigned per-series colours, and size-encoded bubbles. | 32 points fully inside the root, exactly 4 legend chips naming the 4 regions, >= 4 distinct marker fills, >= 10 distinct radii, quadrants, guides and regression line as above. |
+| `03-benchmark-thresholds.png` | Explicit benchmark thresholds (X = 30, Y = 10) with category data labels enabled. | Threshold labels reading exactly `threshold 30` / `threshold 10`, provenance text naming both benchmarks, >= 20 category data labels, 26 points, quadrants, guides and regression line as above. |
+
+Every scene additionally asserts the accessible data table by geometry: >= 120px rendered and
+visible height inside the root, >= 4 rows actually inside its clipped viewport, one row per
+data point, 5 header cells, the caption, no part of the band escaping the visual root, and no
+element escaping the root at all.
+
+Those assertions would otherwise be ephemeral, so step 5 makes them durable. The manifest
+records, per scene, each expectation alongside the value that satisfied it — for example
+`tableVisibleHeight`, `at least 120`, measured `180` — plus the SHA-256 of the PNG the run
+wrote. `npm run publication-audit` re-hashes the committed images against that record, so a
+screenshot that is hand-edited, reverted or swapped after capture is rejected, as is a
+committed screenshot no scene vouches for. Capture-time assertions prove an image was right
+when written; the manifest is what still proves it afterwards. It is a hash comparison rather
+than a pixel diff, so nothing here can flake on Chrome versions, font availability or
+rasteriser changes.
 
 ## 4. Listing URLs
 
