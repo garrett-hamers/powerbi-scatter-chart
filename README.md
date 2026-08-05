@@ -25,12 +25,14 @@ npm run audit
 ```
 
 `npm run certification-audit` starts from a clean output directory, runs the complete automated
-release gate, including two clean package runs with byte-for-byte and SHA-256 equality. The
-generated package is written to `dist/atlynScatter.1.0.1.0.pbiviz`. Packaging normalizes ZIP
-entry order, timestamps, permissions, and compression before an atomic replacement. Package
-metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are rejected.
-The audit also opens the generated package and asserts that the bundled script, the compiled
-stylesheet, and a 20x20 PNG icon are all present. `npm run release-manifest` writes
+release gate, including two clean package runs with byte-for-byte and SHA-256 equality. Those two
+runs package under timezones on opposite sides of UTC (`Etc/GMT+12` and `Etc/GMT-14`), so a
+build whose bytes depend on the builder's clock fails the gate. The generated package is written
+to `dist/atlynScatter.1.0.1.0.pbiviz`. Packaging normalizes ZIP entry order, timestamps (to a
+fixed UTC-anchored DOS timestamp), permissions, and compression before an atomic replacement.
+Package metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are
+rejected. The audit also opens the generated package and asserts that the bundled script, the
+compiled stylesheet, and a 20x20 PNG icon are all present. `npm run release-manifest` writes
 `dist/release-manifest.json` with the source commit, exact package filename, byte size, SHA-256,
 and the SHA-256 of every publication asset. The release manifest is the immutable-artifact
 record: never overwrite a package or manifest at an existing versioned location.

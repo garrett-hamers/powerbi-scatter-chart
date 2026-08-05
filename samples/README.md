@@ -23,12 +23,17 @@ regenerated deterministically by
 ## Turning it into the submission .pbix
 
 1. Open `AtlynScatterSample/AtlynScatterSample.pbip` in Power BI Desktop.
-2. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
+2. **Confirm the visual renders with data.** The sample data is a **DAX calculated table**, so the
+   model has no data source at all: nothing to connect to, nothing to refresh. Power BI Desktop is
+   expected to materialise the table while loading the model, so the tables should already hold
+   data when the project opens.
+3. **Only if** a table shows as empty, or Desktop reports *"Some of the tables have incomplete or
+   no data"*, run **Home > Refresh > Schema and data** before saving.
+4. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
 
-There is no refresh step. The sample data is a **DAX calculated table**, so the model has no data
-source at all: nothing to connect to, no credential prompt, and nothing to refresh. Power BI
-Desktop materialises the table while loading the model, so the tables already hold data when the
-project opens.
+If Desktop ever prompts for credentials, something external has crept into the model: **stop and
+investigate** rather than entering any. A credential prompt would mean the model had acquired a
+data source, which `npm run publication-audit` and `tests/sample-report.test.ts` both forbid.
 
 Upload the resulting `.pbix` to Partner Center. Keep it out of this repository: it is a binary that
 the deterministic generator cannot reproduce.
