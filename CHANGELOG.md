@@ -29,6 +29,22 @@
   alter rendering therefore costs one re-capture and no image churn. The packaged artifact is
   unchanged at 17,492 bytes, sha256
   `f77138f49d20c0d3ad4e6d501845bd513d9ee9136290093acd58941f8e6f534f`.
+- Corrected what the manifest claims about re-capture, and asserted the note that carries it.
+  The note said "re-capturing on the same platform reproduces these bytes exactly", which is a
+  claim about rasteriser behaviour sitting inside a file built to stop unverified claims — and a
+  sibling repo measured the opposite on its own screenshots, with 6-15 pixels of 1,049,088
+  differing intermittently between identical runs. Measured here rather than reasoned about:
+  **30 consecutive captures with no repackaging produced one distinct outcome**, byte-identical
+  to the committed set every time. Ablating `--disable-gpu` changed all three image hashes but
+  stayed deterministic across a further 10 runs, so that flag alters rasterisation without being
+  the source of the stability. The claim therefore holds on this machine, but it is an
+  observation about one Windows host and browser build rather than a property the pipeline may
+  lean on: CI's Linux capture of scene 01 is 89,557 bytes against 66,320 here. The note now says
+  what each scene hash actually pins — the committed bytes its assertions were applied to — and
+  that it must never be repurposed as a comparison against a freshly rendered image, since that
+  would reintroduce the flaky golden-image diff the pipeline exists to avoid. `note` was the last
+  unasserted field in the manifest and is now compared like the rest, so a quiet rewrite of that
+  invariant fails the build.
 
 - Added capture-time content assertions to the listing screenshots, so a screenshot cannot be
   written unless the scene it claims to show actually rendered. Generation previously validated
