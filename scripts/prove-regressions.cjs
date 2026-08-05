@@ -150,14 +150,22 @@ function runSuite() {
   if (build.status !== 0) {
     return { compiled: false, output: `${build.stdout ?? ""}${build.stderr ?? ""}` };
   }
-  const result = spawnSync("node", ["--test", "dist-tests/tests/layout.test.js"], {
-    cwd: root, encoding: "utf8", timeout: 300000
-  });
+  // The default reporter depends on the Node version and on whether stdout is a TTY, so it
+  // is pinned here: TAP is stable and machine readable everywhere.
+  const result = spawnSync(
+    process.execPath,
+    ["--test", "--test-reporter=tap", "dist-tests/tests/layout.test.js"],
+    { cwd: root, encoding: "utf8", timeout: 300000 }
+  );
   return { compiled: true, output: `${result.stdout ?? ""}${result.stderr ?? ""}`, status: result.status };
 }
 
 function failingTestNames(output) {
   const names = new Set();
+  for (const match of output.matchAll(/^not ok \d+ - (.+?)\s*$/gm)) {
+    names.add(match[1].trim());
+  }
+  // Tolerate the spec reporter too, in case the pin is ever dropped.
   for (const match of output.matchAll(/^\u2716 (.+?) \(/gm)) {
     names.add(match[1].trim());
   }
@@ -165,6 +173,7 @@ function failingTestNames(output) {
 }
 
 (function main() {
+  fs.mkdirSync(path.join(root, "dist"), { recursive: true });
   const results = [];
   let allProven = true;
   for (const reversion of REVERSIONS) {
@@ -222,8 +231,7 @@ function failingTestNames(output) {
     return;
   }
   fs.writeFileSync(
-    path.join(root, "dist", "regression-proof.json"),
-    `${JSON.stringify({ generatedBy: "scripts/prove-regressions.cjs", results }, null, 2)}\n`,
+    path.join(root, "dist", "regression-proof.json"),    `${JSON.stringify({ generatedBy: "scripts/prove-regressions.cjs", results }, null, 2)}\n`,
     "utf8"
   );
   console.log(`\n${results.filter((item) => item.proven).length}/${results.length} fixes proven by a failing test.`);
