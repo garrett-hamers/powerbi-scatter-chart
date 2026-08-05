@@ -28,6 +28,13 @@ jobs:
       # certification-audit starts with "clean", so the probe runs afterwards to keep its
       # report in dist for the artifact upload.
       - run: npm run layout-probe
+      # The listing screenshots are captured and asserted here, never published here:
+      # --check leaves assets/screenshots untouched so the runner's font stack cannot churn
+      # the committed images, while a scene that stops rendering still fails the build.
+      # Headless Chromium is already a proven dependency of this job via layout-probe, and
+      # every scene assertion is an element count or a geometry relation rather than a pixel
+      # or text-metric comparison, so a different font stack does not move them.
+      - run: npm run screenshots:check
       - run: npm run prove-regressions
       - run: npm run publication-audit
       - run: npm run audit

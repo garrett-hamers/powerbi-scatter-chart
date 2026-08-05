@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Added capture-time content assertions to the listing screenshots, so a screenshot cannot be
+  written unless the scene it claims to show actually rendered. Generation previously validated
+  only that the output was a 1366x768 PNG under the 1024 KB cap, which are properties of the
+  *file* and say nothing about the *scene*: the committed images were captured while the
+  accessible data table laid out at zero visible height, shipped showing no table at all, and
+  passed every check on the way out. No static property of a PNG separates a correct render from
+  a wrong-but-plausible one, so `scripts/generate-screenshots.cjs` now takes the screenshot and
+  probes the very frame that was photographed in a single Chromium run, and stages the PNG in
+  `.tmp/` until the scene's own expectations pass. Each scene declares its own: scene 01 requires
+  4 shaded quadrants, 2 median guides, a regression line and size-varied bubbles with no legend;
+  scene 02 requires exactly 4 legend chips naming the 4 regions and >= 4 distinct marker fills;
+  scene 03 requires threshold labels reading `threshold 30` / `threshold 10`, provenance text
+  naming both benchmarks, and >= 20 data labels, so it fails on missing thresholds even when all
+  26 points plot correctly. Every scene asserts the accessible table by **geometry** rather than
+  presence — >= 120px rendered and visible height, >= 4 rows inside its clipped viewport, no part
+  of the band escaping the visual root — because the table was in the DOM the entire time it was
+  invisible and `querySelector` would have found it throughout. A failing scene also deletes any
+  stale image already published for it rather than leaving one in place looking current. CI runs
+  the same capture and assertions through `npm run screenshots:check`, which never touches
+  `assets/screenshots`. Re-capturing with the assertions active reproduced all three committed
+  screenshots byte-for-byte.
 - Extended `npm run layout-probe` to force overflow and scroll, because measuring only at
   rest hides a whole class of CSS bug. A sibling repo's probe reported "no latent bugs" from
   a fixture whose content happened to fit (`scrollHeight 1114 === clientHeight 1114`), so

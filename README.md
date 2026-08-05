@@ -141,7 +141,21 @@ npm run package && npm run generate-sample-report
 Microsoft Edge or Google Chrome against a mock host and hard-coded offline sample data, then
 captures PNGs at exactly 1366x768. It requires a locally installed Chromium-based browser
 (override the path with `ATLYN_BROWSER`) and fails loudly rather than producing placeholder
-images. This step is local and on demand; CI only validates the committed PNGs.
+images.
+
+Every scene is asserted **at capture time**, because the size and format of a PNG say nothing
+about whether the right thing was drawn. A single browser run emits both the screenshot and a
+probe of the same frame, each scene declares what it must contain, and the image is staged in
+`.tmp/` until its own assertions pass; a scene that fails takes any stale published image with
+it rather than leaving one in place looking current. Claims about the accessible data table are
+deliberately geometry rather than presence — rendered height, rows inside the visual root —
+because that table was present in the DOM throughout the period it rendered at zero height and
+its screenshots shipped showing nothing. See
+[`scripts/screenshot-assertions.cjs`](scripts/screenshot-assertions.cjs).
+
+CI runs `npm run screenshots:check`, which captures and asserts every scene without touching
+`assets/screenshots`, so a scene that stops rendering fails the build while the runner's font
+stack cannot churn the committed images.
 
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
