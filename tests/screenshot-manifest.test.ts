@@ -103,6 +103,30 @@ test("a doctored manifest is rejected", () => {
   assert.ok(problems.some((problem) => /capture\.tile\.height/.test(problem)));
 });
 
+// The note states what the recorded hashes pin and, more importantly, that they must never be
+// turned into a comparison against a fresh render. Quietly rewriting that is worth catching,
+// so the note is generated from a constant and compared like every other field.
+test("a rewritten note is rejected", () => {
+  const manifest = committedManifest();
+  manifest.note = "Re-capturing always reproduces these bytes on any machine.";
+  const problems = inspectCaptureBinding(manifest, matchingContext(manifest));
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /records note/);
+});
+
+// Guards the invariant itself: the committed note has to keep saying that a scene hash pins
+// committed bytes rather than licensing a re-render diff, and has to keep giving the reason
+// that survives the measurement landing either way. "Re-rendering is unreliable" would not:
+// it is false on this machine, so a future reader who re-measured could reasonably delete the
+// warning. "CI renders on an axis nobody controls" is true regardless.
+test("the committed note states that scene hashes are not a re-render comparison", () => {
+  const note = String(committedManifest().note);
+  assert.match(note, /pins the committed bytes/);
+  assert.match(note, /never be repurposed as a comparison against a freshly rendered image/);
+  assert.match(note, /different operating system, browser build and font stack/);
+  assert.match(note, /nothing here relies\s+on it/);
+});
+
 test("a scene added to the generator but never captured is rejected", () => {
   const manifest = committedManifest();
   const context = matchingContext(manifest);

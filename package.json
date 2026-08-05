@@ -19,6 +19,7 @@
     "generate-sample-report": "node scripts/generate-sample-report.cjs",
     "screenshots": "node scripts/generate-screenshots.cjs",
     "screenshots:check": "node scripts/generate-screenshots.cjs --check",
+    "screenshots:determinism": "node scripts/screenshot-determinism-probe.cjs",
     "layout-probe": "node scripts/layout-probe.cjs",
     "prove-regressions": "node scripts/prove-regressions.cjs",
     "release-manifest": "node scripts/release-manifest.cjs",

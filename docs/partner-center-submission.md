@@ -138,6 +138,16 @@ rebuilt without re-capturing its screenshots now fails the build, naming both ha
 fix. Re-capture is cheap — a bundle change that does not alter rendering reproduces all three
 PNGs byte-for-byte and moves only the recorded bundle hash.
 
+The per-scene hashes pin the committed bytes the assertions were applied to, and are never
+compared against a freshly rendered image. The reason is not that re-rendering is unreliable —
+`npm run screenshots:determinism` measures 1 distinct hash over 5 captures per scene on this
+machine, under every flag configuration tried. The reason is that rendering is
+platform-dependent: the same scene captured on the Linux CI runner is 89,557 bytes where the
+committed Windows capture is 66,320, because font rasterisation differs. Comparing a fresh
+render against these hashes would therefore compare across an axis nobody controls, which is
+the flaky golden-image diff this pipeline deliberately avoids, so the audits re-hash the
+committed files instead.
+
 ## 4. Listing URLs
 
 | Field | Value | Verified |
