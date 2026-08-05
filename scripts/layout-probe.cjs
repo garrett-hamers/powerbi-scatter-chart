@@ -22,7 +22,7 @@ const {
   harnessHtml,
   runBrowser
 } = require("./visual-harness.cjs");
-const { evaluateCase } = require("./layout-rules.cjs");
+const { evaluateCase, isExemptingAncestor } = require("./layout-rules.cjs");
 
 const workDirectory = path.join(root, ".tmp", "layout-probe");
 const reportPath = path.join(root, "dist", "layout-probe.json");
@@ -125,7 +125,13 @@ const SCENARIOS = [
 ];
 
 // Runs inside the page. Everything below is ES5 so it survives any Chromium the CI image ships.
+//
+// The containment predicate is *not* reimplemented here. isExemptingAncestor is serialised
+// from scripts/layout-rules.cjs and injected as window.__atlynIsExemptingAncestor, so the
+// probe and its unit tests exercise one implementation. A second copy would be free to drift,
+// and a drifted copy that wrongly exempts the root silently blinds the whole instrument.
 const PROBE_SCRIPT = `
+window.__atlynIsExemptingAncestor = ${isExemptingAncestor.toString()};
 (function () {
   var EPS = 0.5;
   var NEAR_ZERO = 4;
@@ -172,22 +178,25 @@ const PROBE_SCRIPT = `
       return false;
     }
 
-    // An ancestor only excuses overflow when it actually scrolls: a <table> reports
-    // overflow:auto in getComputedStyle but never becomes a scroll container, so the
-    // exemption must be proven by geometry, not by the declared property.
+    // An ancestor only excuses overflow when it actually scrolls, and the root never excuses
+    // anything. The decision itself lives in scripts/layout-rules.cjs (isExemptingAncestor)
+    // and is injected below, so the tests exercise the same predicate the probe runs rather
+    // than a second copy that could drift away from it.
     function scrollsOwnOverflow(node) {
       var style = getComputedStyle(node);
-      var oy = style.overflowY, ox = style.overflowX;
-      var scrollable = oy === "auto" || oy === "scroll" || ox === "auto" || ox === "scroll";
-      if (!scrollable) { return false; }
-      if (node.clientHeight <= 0 && node.clientWidth <= 0) { return false; }
       var rect = node.getBoundingClientRect();
-      var inside = rect.left >= rootRect.left - EPS && rect.right <= rootRect.right + EPS &&
-        rect.top >= rootRect.top - EPS && rect.bottom <= rootRect.bottom + EPS;
-      if (!inside) { return false; }
-      var clips = node.scrollHeight > node.clientHeight + 1 || node.scrollWidth > node.clientWidth + 1 ||
-        (node.clientHeight > 0 && Math.abs(node.clientHeight - rect.height) < node.clientHeight);
-      return clips;
+      return window.__atlynIsExemptingAncestor({
+        isRoot: node === el,
+        overflowX: style.overflowX,
+        overflowY: style.overflowY,
+        clientWidth: node.clientWidth,
+        clientHeight: node.clientHeight,
+        scrollWidth: node.scrollWidth,
+        scrollHeight: node.scrollHeight,
+        rectHeight: rect.height,
+        insideRoot: rect.left >= rootRect.left - EPS && rect.right <= rootRect.right + EPS &&
+          rect.top >= rootRect.top - EPS && rect.bottom <= rootRect.bottom + EPS
+      });
     }
 
     function escapes(rect) {

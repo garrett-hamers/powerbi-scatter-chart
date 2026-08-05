@@ -166,11 +166,81 @@ function evaluateCase(measured) {
   return problems;
 }
 
+/**
+ * Does one candidate ancestor genuinely excuse a descendant's overflow?
+ *
+ * Two traps, both of which have bitten a probe in this portfolio:
+ *
+ * 1. A `<table>` reports `overflow: auto` from getComputedStyle and *never* becomes a scroll
+ *    container — `overflow` is inert on a `display: table` box. A probe that tests the
+ *    declared property accepts it as a scroller and exempts everything beneath it, so the
+ *    defect it exists to catch becomes invisible. The exemption must be proven by geometry.
+ * 2. The visual root frequently declares `overflow: auto` itself. If the root is allowed to
+ *    exempt its own descendants, *no escape can ever be reported* and every case goes green.
+ *    The root is never an exempting ancestor: escaping it is precisely what is being measured.
+ *
+ * Takes measured facts rather than DOM nodes so both traps can be exercised without a browser.
+ *
+ * @param {object} candidate
+ * @param {boolean} candidate.isRoot the visual root, which can never exempt
+ * @param {string} candidate.overflowX computed overflow-x
+ * @param {string} candidate.overflowY computed overflow-y
+ * @param {number} candidate.clientWidth
+ * @param {number} candidate.clientHeight
+ * @param {number} candidate.scrollWidth
+ * @param {number} candidate.scrollHeight
+ * @param {number} candidate.rectHeight border-box height
+ * @param {boolean} candidate.insideRoot whether its own box sits within the root
+ */
+function isExemptingAncestor(candidate) {
+  if (!candidate || candidate.isRoot) {
+    return false;
+  }
+  const scrollable = ["auto", "scroll"].includes(candidate.overflowY) ||
+    ["auto", "scroll"].includes(candidate.overflowX);
+  if (!scrollable) {
+    return false;
+  }
+  // A box with no content area cannot clip anything, and a `display: table` box reports
+  // clientWidth/clientHeight of 0 for this purpose.
+  if (candidate.clientHeight <= 0 && candidate.clientWidth <= 0) {
+    return false;
+  }
+  // An ancestor that has itself escaped the root cannot excuse a descendant for escaping it.
+  if (!candidate.insideRoot) {
+    return false;
+  }
+  const overflows = candidate.scrollHeight > candidate.clientHeight + 1 ||
+    candidate.scrollWidth > candidate.clientWidth + 1;
+  const boundsItsContent = candidate.clientHeight > 0 &&
+    Math.abs(candidate.clientHeight - candidate.rectHeight) < candidate.clientHeight;
+  return overflows || boundsItsContent;
+}
+
+/**
+ * Walks an ancestor chain, nearest first, and returns the first genuinely exempting ancestor.
+ * The chain must stop at the root: the root itself is included only so it can be rejected,
+ * which is what keeps a scrolling root from blinding the whole probe.
+ */
+function exemptingAncestor(chain) {
+  for (const candidate of chain ?? []) {
+    if (isExemptingAncestor(candidate)) {
+      return candidate;
+    }
+    if (candidate?.isRoot) {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 module.exports = {
   assertRegionOverflows,
   assertExpectedRegionsPresent,
   assertStickyTopsDistinct,
   assertPositionedContainment,
   assertRootDidNotScroll,
+  isExemptingAncestor,
+  exemptingAncestor,
   evaluateCase
 };
