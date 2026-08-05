@@ -32,12 +32,16 @@ const MAX_SCREENSHOT_BYTES = 1024 * 1024;
 
 const MANIFEST_NOTE =
   "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time " +
-  "assertions measured and the SHA-256 of the PNG that capture wrote, and the capture block " +
-  "records the packaged bundle those images were rendered from. The audits re-hash the " +
-  "committed files against these values and re-check the bundle hash against the packaged " +
-  "visual, which detects both a screenshot changing without its capture being re-run and the " +
-  "visual changing without the screenshots being re-captured. These are hash comparisons, not " +
-  "pixel diffs. Re-capturing on the same platform reproduces these bytes exactly.";
+  "assertions measured and the SHA-256 of the PNG that capture wrote; the capture block records " +
+  "the packaged bundle those images were rendered from. The audits compare both against the " +
+  "committed files and the packaged visual, which catches a screenshot changing without its " +
+  "capture being re-run and the visual changing without the screenshots being re-captured. " +
+  "Each scene sha256 pins the committed bytes its assertions were applied to. It must never be " +
+  "repurposed as a comparison against a freshly rendered image: the same scene rasterises " +
+  "differently across platforms, so a re-render comparison would be exactly the flaky " +
+  "golden-image diff this pipeline exists to avoid. Re-capture measured byte-identical over 30 " +
+  "consecutive runs on one Windows machine and browser build, but that is an observation about " +
+  "that environment, not a property anything here depends on.";
 
 function relative(filePath) {
   return path.relative(root, filePath).split(path.sep).join("/");
@@ -166,9 +170,9 @@ function verifyCommittedScreenshots() {
 // that state uncommittable — the screenshots become demonstrably older than the visual.
 //
 // A recorded value that nothing compares against is decoration, and decoration shaped like
-// verification is worse than nothing, so every field the manifest carries is checked here
-// apart from the two prose fields (`note`, and the per-scene captions are checked against
-// the generator's own scene list rather than treated as free text).
+// verification is worse than nothing, so every field the manifest carries is checked here.
+// That includes the note: it is generated from a constant, and it now states an invariant
+// about how the recorded hashes may be used, so silently editing it is worth catching.
 function verifyCaptureBinding(context) {
   const { manifest, problems } = readManifest();
   if (problems) {
@@ -190,6 +194,7 @@ function inspectCaptureBinding(manifest, context) {
   };
 
   expect("generatedBy", manifest.generatedBy, "scripts/generate-screenshots.cjs");
+  expect("note", manifest.note, MANIFEST_NOTE);
   expect("visual.name", manifest.visual?.name, context.visual.name);
   expect("visual.version", manifest.visual?.version, context.visual.version);
   expect("visual.guid", manifest.visual?.guid, context.visual.guid);

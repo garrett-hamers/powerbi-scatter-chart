@@ -181,6 +181,14 @@ decoration, and decoration shaped like verification is worse than nothing.
 `tests/screenshot-manifest.test.ts` drives that comparison with deliberately stale and
 doctored manifests rather than only with one that already happens to be correct.
 
+Each scene hash pins the committed bytes its assertions were applied to. It is deliberately not
+a comparison against a freshly rendered image: the same scene rasterises differently on
+different platforms — CI's Linux capture of scene 01 is 89,557 bytes against 66,320 on the
+Windows machine that committed it — so re-render comparison would be the flaky golden-image
+diff this pipeline exists to avoid. Re-capture happens to be byte-identical here (measured over
+30 consecutive runs), but nothing depends on that, and the manifest note recording the
+distinction is itself asserted so it cannot be quietly rewritten.
+
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
 report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(...)` calculated
