@@ -230,3 +230,32 @@ test("marks the rendered size class on the root for the shipped stylesheet", () 
   assert.equal(isCompact(1280, 189), true);
   assert.equal(isCompact(1280, 620), false);
 });
+
+// An absolutely positioned descendant resolves against its nearest positioned ancestor. The
+// visually-hidden accessible table is absolutely positioned, so if the root ever computes
+// position: static that box resolves against the initial containing block and escapes the
+// root's overflow: hidden entirely. A sibling repo shipped exactly that, and it looked
+// contained only by luck.
+test("the root establishes the containing block its absolute descendants rely on", () => {
+  const rootRule = stylesheet.match(/\.atlyn-scatter \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(rootRule, /position:\s*relative/, "the root must not compute position: static");
+
+  const absoluteRules = (stylesheet.match(/[^{}]+\{[^{}]*\}/g) ?? [])
+    .filter((rule) => /position:\s*absolute/.test(rule));
+  assert.ok(absoluteRules.length > 0, "the visually-hidden variants are absolutely positioned");
+  for (const rule of absoluteRules) {
+    const selector = rule.slice(0, rule.indexOf("{")).trim();
+    assert.match(
+      selector,
+      /^\.atlyn-scatter/,
+      `absolutely positioned ${selector} must live inside the visual root`
+    );
+  }
+});
+
+// This visual ships no sticky positioning. If that ever changes, the stylesheet must pair it
+// with a scroll container, and the probe's strictly-increasing tops rule starts applying.
+test("records that no sticky or fixed positioning ships today", () => {
+  assert.doesNotMatch(stylesheet, /position:\s*sticky/, "adding sticky needs the probe's scroll-time rule");
+  assert.doesNotMatch(stylesheet, /position:\s*fixed/, "fixed positioning can never be clipped by the root");
+});

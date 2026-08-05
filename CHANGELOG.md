@@ -2,6 +2,35 @@
 
 ## Unreleased
 
+- Extended `npm run layout-probe` to force overflow and scroll, because measuring only at
+  rest hides a whole class of CSS bug. A sibling repo's probe reported "no latent bugs" from
+  a fixture whose content happened to fit (`scrollHeight 1114 === clientHeight 1114`), so
+  nothing scrolled, `position: sticky` never engaged, and three real defects stayed invisible.
+  The probe now runs deliberately overflowing fixtures (320 categories, up to 12 series),
+  scrolls every scrollable region to its top, midpoint and maximum, and re-measures at each
+  offset. A region declared scrollable must prove it is genuinely scrolling and must still be
+  present in the measurements, so the run fails loudly if a fixture stops overflowing instead
+  of passing on a vacuous assertion.
+- Added explicit positioning checks. Every element whose computed `position` is not `static`
+  is resolved to the ancestor establishing its containing block, and the probe flags an
+  absolutely positioned element with no positioned ancestor (it resolves against the initial
+  containing block and escapes the root's `overflow: hidden`), `position: fixed` outright,
+  and `position: sticky` with no scrolling ancestor. Where sticky elements exist, their
+  bounding-rect tops after a scroll must be strictly increasing and all distinct.
+- **Measured result for this visual: clean.** Across 60 cases the probe measured 30 scrollable
+  regions, all 30 genuinely scrolling, over 90 scroll passes reaching a maximum `scrollTop` of
+  24,467px, with 0 violations at every offset. The root computes `position: relative`, so it
+  establishes the containing block its descendants rely on. The only non-static element is the
+  visually-hidden accessible table wrapper, whose containing block correctly resolves to
+  `div.atlyn-scatter`. **The visual ships no `position: sticky` and no `position: fixed` at
+  all**, so the sticky-collapse defect class cannot occur here; the rule is armed and unit
+  tested against the sibling repo's measured numbers in case that ever changes.
+- Added `tests/layout-rules.test.ts` and a `tests/layout.test.ts` invariant that the root must
+  keep `position: relative` while absolutely positioned descendants exist, plus a guard that
+  notices if sticky or fixed positioning is ever introduced. `npm run prove-regressions` now
+  proves 12 fixes, and both new probe rules were additionally proven end to end by reverting
+  the real stylesheet and re-running the probe against the repackaged bundle.
+
 - Verified in **Power BI Desktop 2.150.2102.0** that the packaged `atlynScatter.1.0.1.0.pbiviz`
   actually loads. Desktop imported the file (`Import successful`), matched its GUID and version
   against the copy embedded in the sample report, listed **Atlyn Scatter** in the Visualizations

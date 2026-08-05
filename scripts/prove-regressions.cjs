@@ -139,6 +139,28 @@ const REVERSIONS = [
     find: `      direction: "ltr",`,
     replace: `      direction: this.rtl ? "rtl" : "ltr",`,
     expectFailing: ["the SVG stays in an LTR coordinate space so mirrored anchors are not flipped twice"]
+  },
+  {
+    id: "root-not-positioned",
+    description: "Root drops position: relative, so absolute descendants resolve against the viewport",
+    file: "style/visual.less",
+    find: `  overflow: hidden;
+  position: relative;`,
+    replace: "  overflow: hidden;",
+    expectFailing: ["the root establishes the containing block its absolute descendants rely on"]
+  },
+  {
+    id: "sticky-without-scroll-rule",
+    description: "Sticky positioning introduced without the probe rule that guards it",
+    file: "style/visual.less",
+    find: `.atlyn-scatter__semantic-table th,`,
+    replace: `.atlyn-scatter__semantic-table th {
+  position: sticky;
+  top: 0;
+}
+
+.atlyn-scatter__semantic-table th,`,
+    expectFailing: ["records that no sticky or fixed positioning ships today"]
   }
 ];
 
