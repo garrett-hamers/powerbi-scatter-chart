@@ -13,8 +13,26 @@ const rules = require("../../scripts/layout-rules.cjs") as {
   assertStickyTopsDistinct: (group: { element: string; tops: number[]; scrollTop?: number }) => string[];
   assertPositionedContainment: (element: Record<string, unknown>) => string[];
   assertRootDidNotScroll: (pass: Record<string, unknown>) => string[];
+  isExemptingAncestor: (candidate: Record<string, unknown>) => boolean;
+  exemptingAncestor: (chain: Array<Record<string, unknown>>) => Record<string, unknown> | undefined;
   evaluateCase: (measured: Record<string, unknown>) => string[];
 };
+
+// A genuine scroll wrapper: declares overflow, has a content box, and its content exceeds it.
+function realScroller(overrides: Record<string, unknown> = {}) {
+  return {
+    isRoot: false,
+    overflowX: "visible",
+    overflowY: "auto",
+    clientWidth: 400,
+    clientHeight: 180,
+    scrollWidth: 400,
+    scrollHeight: 6114,
+    rectHeight: 180,
+    insideRoot: true,
+    ...overrides
+  };
+}
 
 // Keeps the import above honest about where the rules live.
 test("the rules module ships in scripts/", () => {
@@ -242,4 +260,94 @@ test("evaluateCase is silent on a healthy case", () => {
     }),
     []
   );
+});
+
+// ---------------------------------------------------------------------------------------
+// Containment exemption. These two cases are the ones that blind a probe rather than break
+// a visual: when they regress, every scenario reports zero violations and looks healthy.
+// ---------------------------------------------------------------------------------------
+
+// The visual root very often declares overflow: auto itself. If the root were allowed to
+// exempt its own descendants, no escape could ever be reported and the instrument would go
+// silently green on a completely broken layout.
+test("the visual root never exempts its own descendants, even when it scrolls", () => {
+  const scrollingRoot = realScroller({
+    isRoot: true,
+    overflowX: "auto",
+    clientHeight: 300,
+    scrollHeight: 900,
+    rectHeight: 300
+  });
+  assert.equal(rules.isExemptingAncestor(scrollingRoot), false);
+
+  // The identical box, not marked as the root, is a legitimate scroller. Only isRoot differs,
+  // so the assertion cannot pass for some incidental reason.
+  assert.equal(rules.isExemptingAncestor({ ...scrollingRoot, isRoot: false }), true);
+});
+
+// overflow is inert on a display: table box: it reports auto from getComputedStyle and never
+// becomes a scroll container. A probe that trusts the declared property exempts everything
+// beneath such a box, which is exactly the defect this repo's probe exists to catch.
+test("a box that declares overflow but has no scroll geometry does not exempt", () => {
+  const inertTable = realScroller({
+    overflowX: "auto",
+    overflowY: "auto",
+    clientWidth: 0,
+    clientHeight: 0,
+    scrollWidth: 0,
+    scrollHeight: 0,
+    rectHeight: 528
+  });
+  assert.equal(rules.isExemptingAncestor(inertTable), false);
+
+  // A box that declares overflow, has a real content area, and whose content currently fits
+  // *is* a genuine scroll container: it would clip anything that grew past its bounds, and
+  // nothing inside it can reach past the root anyway. Asserting false here would be wrong.
+  assert.equal(
+    rules.isExemptingAncestor(realScroller({ scrollHeight: 180, rectHeight: 900, clientHeight: 900 })),
+    true
+  );
+});
+
+test("a box with no overflow declaration never exempts", () => {
+  assert.equal(rules.isExemptingAncestor(realScroller({ overflowY: "visible" })), false);
+  assert.equal(rules.isExemptingAncestor(realScroller({ overflowY: "hidden" })), false);
+  assert.equal(rules.isExemptingAncestor(realScroller({ overflowY: "scroll" })), true);
+});
+
+test("an ancestor that has itself escaped the root cannot excuse a descendant", () => {
+  assert.equal(rules.isExemptingAncestor(realScroller({ insideRoot: false })), false);
+});
+
+test("exemptingAncestor returns the nearest genuine scroller and stops at the root", () => {
+  const wrapper = realScroller();
+  const found = rules.exemptingAncestor([
+    realScroller({ overflowY: "visible" }),
+    wrapper,
+    realScroller({ isRoot: true })
+  ]);
+  assert.equal(found, wrapper);
+
+  // Nothing genuine before the root: the root terminates the walk rather than exempting.
+  assert.equal(
+    rules.exemptingAncestor([
+      realScroller({ overflowY: "visible" }),
+      realScroller({ isRoot: true, overflowY: "auto" })
+    ]),
+    undefined
+  );
+  assert.equal(rules.exemptingAncestor([]), undefined);
+});
+
+// The probe injects this exact function into the page rather than reimplementing it, so a
+// second copy cannot drift. If it stops serialising cleanly the probe silently loses its
+// predicate, so the serialised form is checked here too.
+test("the predicate serialises into the page as a self-contained function", () => {
+  const source = rules.isExemptingAncestor.toString();
+  assert.match(source, /^function isExemptingAncestor\(/);
+  assert.doesNotMatch(source, /\b(EPS|rootRect|getComputedStyle|require)\b/,
+    "the injected predicate must not close over anything outside itself");
+  // The probe injects it as `window.__atlynIsExemptingAncestor = <source>;`, so the source
+  // must stand alone as an expression rather than depending on a surrounding scope.
+  assert.doesNotMatch(source, /\bmodule\b|\bexports\b/);
 });

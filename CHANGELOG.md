@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Extracted the layout probe's containment predicate into `isExemptingAncestor` in
+  `scripts/layout-rules.cjs`, and made the probe inject that exact function into the page
+  instead of carrying its own copy. Two properties decide whether the instrument can see
+  anything at all, and neither was protected: the visual root must never exempt its own
+  descendants — a sibling repo's probe treated any `overflow: auto` ancestor as containment
+  while its root declared exactly that, so no escape could ever be reported and nearly half
+  its defects were invisible to the tool built to find them — and an exemption must be proven
+  by geometry rather than by the declared property, because `overflow` is inert on a
+  `display: table` box that reports `auto` from `getComputedStyle` and never becomes a scroll
+  container. This probe already had both, verified by measurement rather than by reading: with
+  the root switched to `overflow: auto` and chrome truncation disabled it still reported the
+  211.16px horizontal escape at 398x298 and 163.44px at 258x198, through both detection paths.
+  But "already correct" is not "cannot regress", and simplifying that ancestor walk to include
+  the root would have silently turned every scenario green. The predicate is now a pure
+  function driven by `tests/layout-rules.test.ts` with a scrolling root, an inert `display:
+  table` box, an ancestor that has itself escaped the root, and the serialised form the probe
+  injects. The packaged artifact is unaffected: `atlynScatter.1.0.1.0.pbiviz` is still 17,492
+  bytes, sha256 `f77138f49d20c0d3ad4e6d501845bd513d9ee9136290093acd58941f8e6f534f`.
 - Added a reference-resolution gate for the sample report. Two sibling repos' sample reports
   would not open in Power BI Desktop because `report.json` declared a `SharedResources`
   resource package pointing at `BaseThemes/CY24SU10.json` — a file that exists nowhere in
