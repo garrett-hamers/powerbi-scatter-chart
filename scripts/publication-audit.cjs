@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { buildAssets, decodePng } = require("./generate-brand-assets.cjs");
 const { verifyCommittedScreenshots, readManifest, manifestPath, relative: manifestRelative } = require("./screenshot-manifest.cjs");
+const { inspectReportReferences } = require("./report-references.cjs");
 
 const root = path.resolve(__dirname, "..");
 const screenshotDirectory = path.join(root, "assets", "screenshots");
@@ -276,6 +277,15 @@ function auditSampleReport() {
   const custom = (report.resourcePackages ?? []).find((entry) => entry.type === "CustomVisual");
   if (!custom || custom.name !== guid) {
     blockers.push(`Sample report must embed the visual through a CustomVisual resource package named ${guid}.`);
+  }
+
+  // Every file the report definition claims to ship must actually exist. A schema constrains
+  // shape, not existence, so a path to a missing file validates cleanly and then fails to open.
+  for (const problem of inspectReportReferences({
+    report,
+    exists: (relativePath) => fs.existsSync(path.join(reportRoot, ...relativePath.split("/")))
+  })) {
+    blockers.push(`Sample report reference does not resolve: ${problem}`);
   }
 
   const embedded = JSON.parse(
