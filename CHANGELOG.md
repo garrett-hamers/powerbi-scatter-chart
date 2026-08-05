@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+- Verified in **Power BI Desktop 2.150.2102.0** that the packaged `atlynScatter.1.0.1.0.pbiviz`
+  actually loads. Desktop imported the file (`Import successful`), matched its GUID and version
+  against the copy embedded in the sample report, listed **Atlyn Scatter** in the Visualizations
+  pane with its 20x20 icon, rendered it with data, and applied the packaged stylesheet. The
+  visual's `aria-label` reached the Windows accessibility tree as
+  `Atlyn Scatter, 8 Received, 8 analyzed, 8 rendered points...`, and the visual ran inside
+  Power BI's `Custom Visual Host` sandbox. Nothing before this had confirmed the artifact loads
+  in the product rather than only in an offline harness.
+- Added a container-shape gate to `npm run certification-audit`. A `.pbiviz` is a two-entry
+  archive — `package.json` plus `resources/<GUID>.pbiviz.json` — and a sibling repo shipped a
+  source-tree-shaped zip instead, which the host could never resolve. The audit now asserts the
+  manifest exists, holds exactly one `sourceType: 5` resource whose `file` resolves to a real
+  entry, that `metadata.pbivizjson.resourceId` matches `resources[0].resourceId`, that the GUID
+  and version agree, and that no source-tree entries (`pbiviz.json`, `capabilities.json`,
+  `visual.js`, `style/`, `assets/`, `stringResources/`) are present. The rule lives in
+  `scripts/pbiviz-structure.cjs` as a pure function so `tests/package-structure.test.ts` can
+  drive it with deliberately malformed archives instead of only with a package that already
+  happens to be correct.
 - Fixed the accessible point table rendering entirely outside the visual. `showSemanticTable`
   defaults to `true`, and the table was appended after an SVG with `height: 100%` inside an
   `overflow: hidden` root, so it stacked past the bottom edge. Measured on the packaged

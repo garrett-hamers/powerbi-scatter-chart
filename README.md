@@ -34,7 +34,12 @@ to `dist/atlynScatter.1.0.1.0.pbiviz`. Packaging normalizes ZIP entry order, tim
 fixed UTC-anchored DOS timestamp), permissions, and compression before an atomic replacement.
 Package metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are
 rejected. The audit also opens the generated package and asserts that the bundled script, the
-compiled stylesheet, and a 20x20 PNG icon are all present. `npm run release-manifest` writes
+compiled stylesheet, and a 20x20 PNG icon are all present, and that the archive is a loadable
+container: a `package.json` manifest plus exactly one `resources/<GUID>.pbiviz.json`, with
+`resources[0].sourceType` 5, a `file` pointer that resolves to a real entry, a
+`metadata.pbivizjson.resourceId` that matches it, and no source-tree entries. That container
+check exists because a source-tree-shaped zip passes every content-level assertion while being
+completely unresolvable by the host. `npm run release-manifest` writes
 `dist/release-manifest.json` with the source commit, exact package filename, byte size, SHA-256,
 and the SHA-256 of every publication asset. The release manifest is the immutable-artifact
 record: never overwrite a package or manifest at an existing versioned location.

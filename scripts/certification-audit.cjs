@@ -1,6 +1,7 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const JSZip = require("jszip");
+const { inspectPackage } = require("./pbiviz-structure.cjs");
 
 const root = path.resolve(__dirname, "..");
 const packageJson = readJson("package.json");
@@ -58,6 +59,37 @@ assert(generatedMetadata.author?.email === manifest.author.email, "generated aut
 
 (async () => {
   const zip = await JSZip.loadAsync(fs.readFileSync(packagePath));
+  const entries = Object.keys(zip.files);
+  const fileEntries = entries.filter((entry) => !zip.files[entry].dir);
+
+  // The container shape itself: a manifest that resolves to one inline resource. A
+  // source-tree-shaped archive passes every content check below while being unloadable,
+  // so the structure is asserted before anything is read out of it.
+  const parseEntry = async (name) => {
+    if (!entries.includes(name)) {
+      return undefined;
+    }
+    try {
+      return JSON.parse(await zip.files[name].async("string"));
+    } catch {
+      return undefined;
+    }
+  };
+  const manifestEntry = await parseEntry("package.json");
+  const inlineEntry = await parseEntry(`resources/${manifest.visual.guid}.pbiviz.json`);
+  const structureProblems = inspectPackage({
+    entries,
+    fileEntries,
+    manifest: manifestEntry,
+    resource: inlineEntry,
+    guid: manifest.visual.guid,
+    version: manifest.visual.version
+  });
+  assert(
+    structureProblems.length === 0,
+    `packaged archive is not a loadable .pbiviz:\n  - ${structureProblems.join("\n  - ")}`
+  );
+
   const resourceName = Object.keys(zip.files)
     .find((entry) => entry.startsWith("resources/") && entry.endsWith(".json"));
   assert(resourceName !== undefined, "packaged resource descriptor is missing");
