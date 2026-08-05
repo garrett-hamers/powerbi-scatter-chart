@@ -23,6 +23,20 @@
   the same capture and assertions through `npm run screenshots:check`, which never touches
   `assets/screenshots`. Re-capturing with the assertions active reproduced all three committed
   screenshots byte-for-byte.
+- Recorded the capture-time assertions in a committed `assets/screenshot-manifest.json` and had
+  the audits verify the committed images against it. The assertions above prove a screenshot was
+  right *when written*, then vanish into stdout, so nothing tied a committed PNG back to the run
+  that vouched for it and a file that was hand-edited, reverted or swapped afterwards still
+  passed every remaining gate. Capture now records, per scene, each expectation next to the value
+  that satisfied it — `tableVisibleHeight`, `at least 120`, measured `180` — plus the SHA-256 of
+  the image it wrote, and both `npm run screenshots:check` and `npm run publication-audit`
+  re-hash the committed files against that record. An unvouched screenshot, a missing manifest
+  and a hollow record with no measured values are rejected too. The measured numbers are recorded
+  rather than a pass flag because they stay reviewable months later. This is a SHA-256 comparison
+  of a file against its own recorded hash, not a pixel diff, so it is dependency-free and cannot
+  flake on Chrome versions, font availability or rasteriser changes. The packaged artifact is
+  unaffected: `atlynScatter.1.0.1.0.pbiviz` is still 17,492 bytes,
+  sha256 `f77138f49d20c0d3ad4e6d501845bd513d9ee9136290093acd58941f8e6f534f`.
 - Extended `npm run layout-probe` to force overflow and scroll, because measuring only at
   rest hides a whole class of CSS bug. A sibling repo's probe reported "no latent bugs" from
   a fixture whose content happened to fit (`scrollHeight 1114 === clientHeight 1114`), so

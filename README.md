@@ -157,6 +157,17 @@ CI runs `npm run screenshots:check`, which captures and asserts every scene with
 `assets/screenshots`, so a scene that stops rendering fails the build while the runner's font
 stack cannot churn the committed images.
 
+Capture-time assertions prove a file was right *when written*, and are then gone. So a publish
+run also records what it measured, and the SHA-256 of every image it wrote, into the committed
+[`assets/screenshot-manifest.json`](assets/screenshot-manifest.json). Both
+`npm run screenshots:check` and `npm run publication-audit` re-hash the committed PNGs against
+that record, which catches a screenshot being hand-edited, reverted or swapped without the
+capture that vouches for it being re-run, and rejects a committed screenshot that no scene
+vouches for at all. This is a hash comparison, not a pixel diff, so it is dependency-free and
+cannot flake on Chrome versions, font availability or rasteriser changes. The recorded values
+are the measured numbers rather than a pass flag, because `tableVisibleHeight: 180` next to
+`at least 120` is reviewable months later and "assertions passed" is not.
+
 `npm run generate-sample-report` writes the offline AppSource sample report to
 [`samples/AtlynScatterSample/`](samples/AtlynScatterSample) as a Power BI project (PBIP): PBIR
 report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(...)` calculated

@@ -332,8 +332,7 @@ function formatValue(value) {
 }
 
 // A rule is one clause so a failure names exactly one broken claim.
-function checkRule(actual, rule) {
-  if (Object.prototype.hasOwnProperty.call(rule, "equals")) {
+function checkRule(actual, rule) {  if (Object.prototype.hasOwnProperty.call(rule, "equals")) {
     return actual === rule.equals ? null : `expected ${rule.equals}, measured ${formatValue(actual)}`;
   }
   if (Object.prototype.hasOwnProperty.call(rule, "atLeast")) {
@@ -376,6 +375,43 @@ function checkRule(actual, rule) {
   throw new Error(`unsupported expectation rule: ${JSON.stringify(rule)}`);
 }
 
+// Rendered into the committed manifest next to the value that satisfied it, so a reader
+// months later sees the claim and the number rather than a bare "passed".
+function describeRule(rule) {
+  if (Object.prototype.hasOwnProperty.call(rule, "equals")) {
+    return `equals ${JSON.stringify(rule.equals)}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "atLeast")) {
+    return `at least ${rule.atLeast}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "atMost")) {
+    return `at most ${rule.atMost}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "sameSet")) {
+    return `exactly the set ${JSON.stringify([...rule.sameSet].sort())}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "someMatches")) {
+    return `at least one entry matching ${String(rule.someMatches)}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "everyMatches")) {
+    return `every entry matching ${String(rule.everyMatches)}`;
+  }
+  if (Object.prototype.hasOwnProperty.call(rule, "noneMatches")) {
+    return `no entry matching ${String(rule.noneMatches)}`;
+  }
+  throw new Error(`unsupported expectation rule: ${JSON.stringify(rule)}`);
+}
+
+// The measured values, not a pass flag. "The table rendered 180px tall with 8 rows in view"
+// stays reviewable long after the run; "assertions passed" does not.
+function recordScene(scene, probe) {
+  return Object.entries(scene.expect).map(([metric, rule]) => ({
+    metric,
+    expected: describeRule(rule),
+    measured: probe.metrics[metric]
+  }));
+}
+
 function evaluateScene(scene, probe) {
   const failures = [];
   if (probe.probeError) {
@@ -413,4 +449,4 @@ function formatFailures(scene, failures) {
   return lines.join("\n");
 }
 
-module.exports = { probeScript, extractProbe, evaluateScene, formatFailures };
+module.exports = { probeScript, extractProbe, describeRule, recordScene, evaluateScene, formatFailures };

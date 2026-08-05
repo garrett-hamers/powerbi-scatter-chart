@@ -88,7 +88,9 @@ The screenshots are **real captures of the built visual**, not mock-ups. The pip
 3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768, and in
    the same browser run probes the frame that was photographed;
 4. checks that frame against the scene's own declared expectations and only then publishes the
-   PNG into `assets/screenshots/`.
+   PNG into `assets/screenshots/`;
+5. records the values it measured and the SHA-256 of every image it wrote into the committed
+   [`assets/screenshot-manifest.json`](../assets/screenshot-manifest.json).
 
 ```text
 npm run package
@@ -116,6 +118,16 @@ Every scene additionally asserts the accessible data table by geometry: >= 120px
 visible height inside the root, >= 4 rows actually inside its clipped viewport, one row per
 data point, 5 header cells, the caption, no part of the band escaping the visual root, and no
 element escaping the root at all.
+
+Those assertions would otherwise be ephemeral, so step 5 makes them durable. The manifest
+records, per scene, each expectation alongside the value that satisfied it — for example
+`tableVisibleHeight`, `at least 120`, measured `180` — plus the SHA-256 of the PNG the run
+wrote. `npm run publication-audit` re-hashes the committed images against that record, so a
+screenshot that is hand-edited, reverted or swapped after capture is rejected, as is a
+committed screenshot no scene vouches for. Capture-time assertions prove an image was right
+when written; the manifest is what still proves it afterwards. It is a hash comparison rather
+than a pixel diff, so nothing here can flake on Chrome versions, font availability or
+rasteriser changes.
 
 ## 4. Listing URLs
 

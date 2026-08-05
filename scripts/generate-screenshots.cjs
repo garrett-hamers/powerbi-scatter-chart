@@ -8,12 +8,19 @@
 // what its caption claims. The PNG is written to .tmp first precisely so a failing scene
 // cannot leave an image behind: shipping a screenshot that fails its own checks is the
 // exact defect this gate exists to prevent.
+//
+// The assertions would otherwise be ephemeral, so a publish run also records what it
+// measured, and the SHA-256 of every image it wrote, into the committed
+// assets/screenshot-manifest.json (scripts/screenshot-manifest.cjs). Capture-time assertions
+// prove a file was right when written; the manifest is what still proves it afterwards.
 const fs = require("node:fs");
 const path = require("node:path");
 
 const {
   root,
+  manifest: pbivizManifest,
   packageName,
+  packagePath,
   fail,
   resolveBrowser,
   readPackageResources,
@@ -23,7 +30,15 @@ const {
   runBrowser
 } = require("./visual-harness.cjs");
 const { flatRows, matrixProducts, matrixRegions } = require("./sample-data.cjs");
-const { probeScript, extractProbe, evaluateScene, formatFailures } = require("./screenshot-assertions.cjs");
+const { probeScript, extractProbe, recordScene, evaluateScene, formatFailures } = require("./screenshot-assertions.cjs");
+const {
+  manifestPath,
+  relative,
+  sha256,
+  buildManifest,
+  writeManifest,
+  verifyCommittedScreenshots
+} = require("./screenshot-manifest.cjs");
 
 const workDirectory = path.join(root, ".tmp", "screenshots");
 const outputDirectory = path.join(root, "assets", "screenshots");
@@ -33,7 +48,9 @@ const MAX_SCREENSHOT_BYTES = 1024 * 1024;
 
 // --check captures and asserts exactly as a publish run does, but never touches
 // assets/screenshots. It is the form CI runs, so a scene that stops rendering fails the
-// build without the committed images churning on a differently-fonted Linux runner.
+// build without the committed images churning on a differently-fonted Linux runner. It
+// still verifies the committed manifest against the committed bytes, which is a hash
+// comparison and therefore platform-independent.
 const checkOnly = process.argv.includes("--check");
 
 const FLAT_POINTS = flatRows.length;
@@ -242,6 +259,7 @@ function capture(browser, htmlPath, pngPath) {
     : "Mode: publish (a scene is only written to assets/screenshots once its assertions pass)");
 
   const scene = probeScript(CATEGORIES);
+  const records = [];
   for (const scenario of scenarios) {
     const htmlPath = path.join(workDirectory, `${scenario.file}.html`);
     const stagedPath = path.join(workDirectory, scenario.file);
@@ -281,6 +299,21 @@ function capture(browser, htmlPath, pngPath) {
       fs.copyFileSync(stagedPath, publishedPath);
     }
 
+    // Hash the bytes that were actually published, so the manifest vouches for the file in
+    // the repository rather than for the staged copy it was made from.
+    const publishedBytes = fs.readFileSync(checkOnly ? stagedPath : publishedPath);
+    records.push({
+      file: scenario.file,
+      caption: scenario.caption,
+      png: {
+        width: header.width,
+        height: header.height,
+        bytes: publishedBytes.length,
+        sha256: sha256(publishedBytes)
+      },
+      assertions: recordScene(scenario, probe)
+    });
+
     const m = probe.metrics;
     console.log(`${checkOnly ? "Verified" : "Captured"} ${scenario.file} (${header.width}x${header.height}, ${header.bytes} bytes) - ${scenario.caption}`);
     console.log(
@@ -289,6 +322,35 @@ function capture(browser, htmlPath, pngPath) {
       `table ${m.tableVisibleHeight}px visible with ${m.tableVisibleRows}/${m.tableBodyRows} rows in view`
     );
   }
+
+  if (!checkOnly) {
+    writeManifest(buildManifest({
+      visual: {
+        name: pbivizManifest.visual.name,
+        version: pbivizManifest.visual.version,
+        guid: pbivizManifest.visual.guid
+      },
+      bundle: packageName,
+      bundleSha256: sha256(fs.readFileSync(packagePath)),
+      bundleOrigin: resources.origin,
+      bundleJsBytes: resources.js.length,
+      bundleCssBytes: resources.css.length
+    }, records));
+    console.log(`Recorded ${records.length} scenes and their image hashes in ${relative(manifestPath)}.`);
+  }
+
+  // In --check this compares the committed manifest against the committed bytes, never
+  // against the render just produced: a Linux capture is legitimately a different image, but
+  // the recorded hash must still describe what is in the repository. After a publish run it
+  // is a self-check that what was just written verifies.
+  const problems = verifyCommittedScreenshots();
+  if (problems.length > 0) {
+    fail(
+      "Screenshot verification failed: the committed images no longer match the capture that asserted them.\n" +
+      problems.map((problem) => `  - ${problem}`).join("\n")
+    );
+  }
+  console.log(`Verified ${relative(manifestPath)} against the committed images: every screenshot still hashes to what its capture recorded.`);
 })().catch((error) => {
   console.error(error.message ?? error);
   process.exitCode = 1;
