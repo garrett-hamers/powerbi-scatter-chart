@@ -20,6 +20,8 @@ npm run build
 npm run package
 npm run reproducibility-audit
 npm run certification-audit
+npm run layout-probe
+npm run prove-regressions
 npm run publication-audit
 npm run audit
 ```
@@ -36,6 +38,38 @@ compiled stylesheet, and a 20x20 PNG icon are all present. `npm run release-mani
 `dist/release-manifest.json` with the source commit, exact package filename, byte size, SHA-256,
 and the SHA-256 of every publication asset. The release manifest is the immutable-artifact
 record: never overwrite a package or manifest at an existing versioned location.
+
+## Layout probe
+
+Asserting that the packaged `content.css` is non-empty would pass on a completely broken
+layout, so `npm run layout-probe` measures the shipped product instead of describing it. It
+extracts the bundle **and** the stylesheet from `dist/*.pbiviz`, loads them into the shared
+offline harness (`scripts/visual-harness.cjs`, also used by the screenshot generator) with a
+mock `IVisualHost`, and reads real geometry with `getBoundingClientRect()` in headless
+Chromium. The harness attaches a shadow root when — and only when — the packaged stylesheet
+actually uses `:host`, which it currently does not; the probe prints which mode it used.
+
+The generic assertion is that no element's border box may escape the visual root, ignoring
+anything inside an ancestor that *genuinely* scrolls its own overflow. That distinction
+matters: a `<table>` reports `overflow: auto` in `getComputedStyle` but never becomes a
+scroll container, so the exemption is proven by geometry rather than by the declared
+property. The probe also flags elements whose height collapses to near zero while they are
+supposed to be visible, and any `text-overflow: ellipsis` that ships without
+`white-space: nowrap` — ellipsis only applies to a single line, so without it the rule
+silently does nothing and the text wraps instead.
+
+Every scenario is measured at 1280x620, 398x298, 258x198, 178x138 and 80x80, the smallest
+viewport the visual declares support for. Alongside the default rendering it exercises
+keyboard focus (outline containment, and whether focusing scrolls the clipped root),
+selection state, the high-contrast palette, an RTL locale, and the reduced-motion
+preference. Results are written to `dist/layout-probe.json` and the command exits non-zero
+on any violation.
+
+`npm run prove-regressions` closes the loop on the regression tests: it reverts each layout
+fix individually in the working tree, re-runs `tests/layout.test.ts`, and requires the
+matching test to go red. A test that still passes with its fix reverted proves nothing, so
+the command fails if any fix is not demonstrably covered. It restores every file it touches
+and writes `dist/regression-proof.json`.
 
 ## AppSource publication
 

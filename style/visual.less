@@ -7,6 +7,13 @@
   height: 100%;
   touch-action: pan-y;
   direction: ltr;
+  display: flex;
+  flex-direction: column;
+  // Flex items default to min-height: auto, which refuses to shrink below their content.
+  // Inside an overflow: hidden root that turns every stacked region into silent clipping,
+  // so every stacked region below sets min-height: 0 explicitly.
+  min-height: 0;
+  min-width: 0;
 }
 
 .atlyn-scatter[dir="rtl"] {
@@ -20,21 +27,34 @@
 
 .atlyn-scatter__svg {
   display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
   width: 100%;
-  height: 100%;
 }
 
 .atlyn-scatter__message {
   font-size: 13px;
   padding: 16px;
   text-align: start;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+}
+
+// A <table> never becomes a scroll container: max-height and overflow are both ignored on
+// display: table boxes, so the table has to live inside a block wrapper that really scrolls.
+.atlyn-scatter__table {
+  flex: 0 0 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  width: 100%;
 }
 
 .atlyn-scatter__semantic-table {
   border-collapse: collapse;
   font-size: 11px;
-  max-height: 180px;
-  overflow: auto;
   width: 100%;
 }
 
@@ -47,6 +67,17 @@
 .atlyn-scatter__semantic-table td {
   padding: 2px 4px;
   text-align: start;
+}
+
+.atlyn-scatter__table--visually-hidden {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  flex: 0 0 auto;
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
 }
 
 .atlyn-scatter__semantic-table--visually-hidden {

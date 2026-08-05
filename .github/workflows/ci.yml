@@ -25,6 +25,10 @@ jobs:
       - run: npm run build
       - run: npm run package
       - run: npm run certification-audit
+      # certification-audit starts with "clean", so the probe runs afterwards to keep its
+      # report in dist for the artifact upload.
+      - run: npm run layout-probe
+      - run: npm run prove-regressions
       - run: npm run publication-audit
       - run: npm run audit
       - run: npm run release-manifest
@@ -34,3 +38,5 @@ jobs:
           path: |
             dist/*.pbiviz
             dist/release-manifest.json
+            dist/layout-probe.json
+            dist/regression-proof.json
