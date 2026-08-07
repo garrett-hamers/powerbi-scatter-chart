@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Prepared `1.0.2.0` as the certification candidate. Packaging now runs
+  `pbiviz package --certification-audit`, which verifies the compiled bundle contains no external
+  requests. Because that mode changes the compiled bytes, the version was bumped instead of
+  overwriting the immutable `1.0.1.0` artifact. Added Microsoft's required `npm run eslint`
+  entry point, aligned the project and lockfile metadata, and pinned CI to Node 20.20.2.
 - Extracted the layout probe's containment predicate into `isExemptingAncestor` in
   `scripts/layout-rules.cjs`, and made the probe inject that exact function into the page
   instead of carrying its own copy. Two properties decide whether the instrument can see
@@ -287,4 +292,3 @@
 
 - Initial Atlyn Scatter release.
 - Added bounded 10,000-row rendering, deterministic selection identities, host tooltip and context-menu lifecycle handling, accessible keyboard navigation, and localized numeric formatting.
-

@@ -24,6 +24,8 @@ jobs:
       - run: npm run eslint
       - run: npm run build
       - run: npm run package
+      - run: npm run generate-sample-report
+      - run: npm run screenshots
       - run: npm run certification-audit
       # certification-audit starts with "clean", so the probe runs afterwards to keep its
       # report in dist for the artifact upload.
@@ -47,3 +49,6 @@ jobs:
             dist/release-manifest.json
             dist/layout-probe.json
             dist/regression-proof.json
+            assets/screenshots/
+            assets/screenshot-manifest.json
+            samples/AtlynScatterSample/
