@@ -2,13 +2,13 @@
 
 ## Development
 
-Use Node.js 18 or newer, then run:
+Use Node.js 20.19 or newer, then run:
 
 ```text
 npm ci
 npm test
 npm run typecheck
-npm run lint:full
+npm run eslint
 npm run build
 npm run package
 npm run reproducibility-audit

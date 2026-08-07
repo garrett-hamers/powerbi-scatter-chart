@@ -1,6 +1,6 @@
 {
   "name": "atlyn-scatter",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "description": "Certification-first explainable quadrant scatter visual for Power BI",
   "main": "dist/visual.js",
@@ -9,11 +9,12 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build:test && node --test dist-tests/tests/*.test.js",
     "build:test": "tsc -p tsconfig.test.json",
+    "eslint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "lint": "npx eslint . --ext .js,.jsx,.ts,.tsx",
     "lint:full": "npx eslint . --ext .js,.jsx,.ts,.tsx",
-    "package": "npm run clean && npm run build && pbiviz package && node scripts/normalize-pbiviz.cjs",
+    "package": "npm run clean && npm run build && pbiviz package --certification-audit && node scripts/normalize-pbiviz.cjs",
     "reproducibility-audit": "node scripts/reproducibility-audit.cjs",
-    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run lint:full && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run publication-audit && npm run release-manifest && npm run audit",
+    "certification-audit": "npm run clean && npm test && npm run typecheck && npm run eslint && npm run reproducibility-audit && pbiviz lint && node scripts/certification-audit.cjs && npm run publication-audit && npm run release-manifest && npm run audit",
     "publication-audit": "node scripts/publication-audit.cjs",
     "generate-brand-assets": "node scripts/generate-brand-assets.cjs",
     "generate-sample-report": "node scripts/generate-sample-report.cjs",
@@ -43,7 +44,7 @@
     "write-file-atomic": "5.0.1"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "overrides": {
     "hono": "^4.12.34",

@@ -15,7 +15,7 @@ RTL, reduced-motion, and export surfaces.
 npm ci
 npm test
 npm run typecheck
-npm run lint:full
+npm run eslint
 npm run build
 npm run package
 npm run reproducibility-audit
@@ -26,11 +26,12 @@ npm run publication-audit
 npm run audit
 ```
 
-`npm run certification-audit` starts from a clean output directory, runs the complete automated
+Use Node.js 20.19 or newer. `npm run certification-audit` starts from a clean output directory,
+runs Microsoft's packaged-code certification audit and the complete automated
 release gate, including two clean package runs with byte-for-byte and SHA-256 equality. Those two
 runs package under timezones on opposite sides of UTC (`Etc/GMT+12` and `Etc/GMT-14`), so a
 build whose bytes depend on the builder's clock fails the gate. The generated package is written
-to `dist/atlynScatter.1.0.1.0.pbiviz`. Packaging normalizes ZIP entry order, timestamps (to a
+to `dist/atlynScatter.1.0.2.0.pbiviz`. Packaging normalizes ZIP entry order, timestamps (to a
 fixed UTC-anchored DOS timestamp), permissions, and compression before an atomic replacement.
 Package metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are
 rejected. The audit also opens the generated package and asserts that the bundled script, the
@@ -184,12 +185,11 @@ doctored manifests rather than only with one that already happens to be correct.
 Each scene hash pins the committed bytes its assertions were applied to. It is deliberately not
 a comparison against a freshly rendered image, and the reason is not that re-rendering is
 unreliable — `npm run screenshots:determinism` measures 1 distinct hash over 5 captures per
-scene here, under every browser flag configuration tried. The reason is that CI runs a different
-operating system, browser build and font stack, so comparing a fresh render against these hashes
-would be comparing across an axis nobody controls: the Linux runner captures scene 01 at 89,557
-bytes where the committed Windows capture is 66,320. Bit-reproducibility is content- and
-build-dependent — sibling repos measure otherwise — so it is measured per repo rather than
-assumed, and nothing in the pipeline relies on it. The manifest note recording all of this is
+scene here, under every browser flag configuration tried. The reason is that different operating
+systems, browser builds, and font stacks can produce different PNG bytes for the same correct
+scene. Bit-reproducibility is content- and build-dependent — sibling repos measure otherwise — so
+it is measured per repo rather than assumed, and nothing in the pipeline relies on it. The
+manifest note recording all of this is
 itself asserted, so it cannot be quietly rewritten into a licence for golden-image diffing.
 
 `npm run generate-sample-report` writes the offline AppSource sample report to

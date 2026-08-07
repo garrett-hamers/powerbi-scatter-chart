@@ -5,7 +5,7 @@ Scatter** to Microsoft AppSource through Partner Center, and the exact manual st
 
 Requirements are taken from
 [Publish Power BI visuals to Partner Center](https://learn.microsoft.com/en-us/power-bi/developer/visuals/office-store)
-and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-bi/developer/visuals/visual-project-structure).
+and [Get your Power BI visuals certified](https://learn.microsoft.com/en-us/power-bi/developer/visuals/power-bi-custom-visuals-certified).
 
 > This repository makes **no claim** of Microsoft certification, AppSource listing status, or
 > Partner Center approval. Nothing below has been submitted yet.
@@ -14,7 +14,7 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
-| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.1.0.pbiviz` |
+| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.2.0.pbiviz` |
 | Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** (refresh only if Desktop reports empty tables) | `samples/AtlynScatterSample/` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
@@ -27,6 +27,11 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 Everything marked "Ready" is verified deterministically by `npm run publication-audit` and by
 `tests/release-contract.test.ts` and `tests/sample-report.test.ts`.
 
+Certification packaging uses `pbiviz package --certification-audit` from
+`powerbi-visuals-tools` 7.2.1. The repository also exposes Microsoft's required
+`npm run eslint` command, pins CI to Node 20.20.2 (the current tools require Node 20.19 or newer),
+and keeps the lowercase `certification` branch immutable until the matching package is submitted.
+
 ## 2. Pbiviz package metadata
 
 Source of truth: [`pbiviz.json`](../pbiviz.json).
@@ -36,7 +41,7 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Visual name (`visual.name`) | `atlynScatter` |
 | Display name (`visual.displayName`) | `Atlyn Scatter` |
 | **GUID** (`visual.guid`) | `atlynScatter` — **never change this.** It is already recorded in the owner's storefront release manifest and download paths. Use Power BI Desktop developer mode to test new builds. |
-| Version (`visual.version`) | `1.0.1.0` (four digits, kept equal to `<package.json version>.0`) |
+| Version (`visual.version`) | `1.0.2.0` (four digits, kept equal to `<package.json version>.0`) |
 | Visual class (`visual.visualClassName`) | `Visual` |
 | API version (`apiVersion`) | `5.11.0` |
 | Description (`visual.description`) | "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader." |
@@ -47,14 +52,13 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Privileges (`capabilities.json`) | `[]` — no `WebAccess`, `ExportContent`, or `LocalStorage` |
 | External dependencies (`dependencies`) | `null` |
 
-Package filename: `atlynScatter.1.0.1.0.pbiviz`, produced by `npm run package` into `dist/`.
+Package filename: `atlynScatter.1.0.2.0.pbiviz`, produced by `npm run package` into `dist/`.
 The build is byte-reproducible; `npm run release-manifest` writes `dist/release-manifest.json`
 with the source commit, package SHA-256, and the SHA-256 of every listing asset.
 
-Version `1.0.1.0` supersedes `1.0.0.0`. The 1.0.0.0 bytes were already distributed from the
-owner's storefront, and the AppSource preparation work changed the packaged contents, so the
-version was bumped rather than republishing different bytes under an existing version. Never
-overwrite a package at an existing versioned location.
+Version `1.0.2.0` supersedes `1.0.1.0`. Enabling Microsoft's packaged-code certification audit
+changes the compiled bundle, so the version was bumped rather than republishing different bytes
+under an existing version. Never overwrite a package at an existing versioned location.
 
 ## 3. Listing assets
 
@@ -82,7 +86,7 @@ npm run generate-brand-assets
 The screenshots are **real captures of the built visual**, not mock-ups. The pipeline in
 [`scripts/generate-screenshots.cjs`](../scripts/generate-screenshots.cjs):
 
-1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.1.0.pbiviz`;
+1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.2.0.pbiviz`;
 2. loads it in a self-contained HTML page with a mock `IVisualHost` and a hard-coded, fully
    offline categorical `DataView` (no network access, no randomness);
 3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768, and in
@@ -141,12 +145,11 @@ PNGs byte-for-byte and moves only the recorded bundle hash.
 The per-scene hashes pin the committed bytes the assertions were applied to, and are never
 compared against a freshly rendered image. The reason is not that re-rendering is unreliable —
 `npm run screenshots:determinism` measures 1 distinct hash over 5 captures per scene on this
-machine, under every flag configuration tried. The reason is that rendering is
-platform-dependent: the same scene captured on the Linux CI runner is 89,557 bytes where the
-committed Windows capture is 66,320, because font rasterisation differs. Comparing a fresh
-render against these hashes would therefore compare across an axis nobody controls, which is
-the flaky golden-image diff this pipeline deliberately avoids, so the audits re-hash the
-committed files instead.
+machine, under every flag configuration tried. The reason is that rendering is platform-dependent:
+different operating systems, browser builds, and font stacks can produce different PNG bytes for
+the same correct scene. Comparing a fresh render against these hashes would therefore compare
+across an axis nobody controls, which is the flaky golden-image diff this pipeline deliberately
+avoids, so the audits re-hash the committed files instead.
 
 ## 4. Listing URLs
 
@@ -260,7 +263,7 @@ These cannot be completed from this repository and are **not** simulated here.
    <https://partner.microsoft.com/dashboard>.
 3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
    model. Do not configure a transactable offer.
-4. **Upload the package**: `dist/atlynScatter.1.0.1.0.pbiviz` (from a clean
+4. **Upload the package**: `dist/atlynScatter.1.0.2.0.pbiviz` (from a clean
    `npm run certification-audit` run).
 5. **Upload the sample `.pbix`** from step 1.
 6. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
@@ -280,7 +283,7 @@ These cannot be completed from this repository and are **not** simulated here.
 npm ci
 npm test
 npm run typecheck
-npm run lint:full
+npm run eslint
 npm run build
 npm run package
 npm run generate-sample-report
