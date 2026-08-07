@@ -16,12 +16,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20.20.2
           cache: npm
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
-      - run: npm run lint:full
+      - run: npm run eslint
       - run: npm run build
       - run: npm run package
       - run: npm run certification-audit

@@ -5,7 +5,7 @@ Scatter** to Microsoft AppSource through Partner Center, and the exact manual st
 
 Requirements are taken from
 [Publish Power BI visuals to Partner Center](https://learn.microsoft.com/en-us/power-bi/developer/visuals/office-store)
-and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-bi/developer/visuals/visual-project-structure).
+and [Get your Power BI visuals certified](https://learn.microsoft.com/en-us/power-bi/developer/visuals/power-bi-custom-visuals-certified).
 
 > This repository makes **no claim** of Microsoft certification, AppSource listing status, or
 > Partner Center approval. Nothing below has been submitted yet.
@@ -26,6 +26,11 @@ and [Power BI visual project structure](https://learn.microsoft.com/en-us/power-
 
 Everything marked "Ready" is verified deterministically by `npm run publication-audit` and by
 `tests/release-contract.test.ts` and `tests/sample-report.test.ts`.
+
+Certification packaging uses `pbiviz package --certification-audit` from
+`powerbi-visuals-tools` 7.2.1. The repository also exposes Microsoft's required
+`npm run eslint` command, pins CI to Node 20.20.2 (the current tools require Node 20.19 or newer),
+and keeps the lowercase `certification` branch immutable until the matching package is submitted.
 
 ## 2. Pbiviz package metadata
 
@@ -280,7 +285,7 @@ These cannot be completed from this repository and are **not** simulated here.
 npm ci
 npm test
 npm run typecheck
-npm run lint:full
+npm run eslint
 npm run build
 npm run package
 npm run generate-sample-report

@@ -15,7 +15,7 @@ RTL, reduced-motion, and export surfaces.
 npm ci
 npm test
 npm run typecheck
-npm run lint:full
+npm run eslint
 npm run build
 npm run package
 npm run reproducibility-audit
@@ -26,7 +26,8 @@ npm run publication-audit
 npm run audit
 ```
 
-`npm run certification-audit` starts from a clean output directory, runs the complete automated
+Use Node.js 20.19 or newer. `npm run certification-audit` starts from a clean output directory,
+runs Microsoft's packaged-code certification audit and the complete automated
 release gate, including two clean package runs with byte-for-byte and SHA-256 equality. Those two
 runs package under timezones on opposite sides of UTC (`Etc/GMT+12` and `Etc/GMT-14`), so a
 build whose bytes depend on the builder's clock fails the gate. The generated package is written
