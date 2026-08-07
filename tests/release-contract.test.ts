@@ -4,6 +4,14 @@ import path from "node:path";
 import test from "node:test";
 
 const root = path.resolve(__dirname, "..", "..");
+const { portablePath } = require("../../scripts/portable-path.cjs") as {
+  portablePath: (value: string) => string;
+};
+
+test("normalizes release manifest paths across build platforms", () => {
+  assert.equal(portablePath("assets\\screenshots\\example.png"), "assets/screenshots/example.png");
+  assert.equal(portablePath("assets/screenshots/example.png"), "assets/screenshots/example.png");
+});
 
 test("declares direct release tooling and complete audit gates", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as any;
