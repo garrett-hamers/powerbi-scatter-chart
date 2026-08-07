@@ -18,6 +18,7 @@ jobs:
         with:
           node-version: 20.20.2
           cache: npm
+      - run: npm install && git diff --exit-code -- package.json package-lock.json
       - run: npm ci
       - run: npm test
       - run: npm run typecheck
