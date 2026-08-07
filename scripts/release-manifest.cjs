@@ -2,6 +2,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { execFileSync } = require("node:child_process");
+const { portablePath } = require("./portable-path.cjs");
 
 const root = path.resolve(__dirname, "..");
 const packageDirectory = path.join(root, "dist");
@@ -29,7 +30,7 @@ function fileMetadata(relativePath) {
   }
   const bytes = fs.readFileSync(filePath);
   return {
-    path: relativePath,
+    path: portablePath(relativePath),
     bytes: bytes.length,
     sha256: crypto.createHash("sha256").update(bytes).digest("hex")
   };
@@ -78,7 +79,7 @@ const releaseManifest = {
     dossier: fileMetadata(path.join("docs", "partner-center-submission.md")),
     appSourceListing: "Free",
     sampleReport: {
-      path: sampleReportRoot.split(path.sep).join("/"),
+      path: portablePath(sampleReportRoot),
       format: "PBIP",
       files: sampleReportFiles.length,
       pbixStatus: "Open the PBIP in Power BI Desktop, confirm the visual renders with data, refresh only if Desktop reports empty or incomplete tables, then Save as .pbix; no .pbix is committed."
