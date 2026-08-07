@@ -185,12 +185,11 @@ doctored manifests rather than only with one that already happens to be correct.
 Each scene hash pins the committed bytes its assertions were applied to. It is deliberately not
 a comparison against a freshly rendered image, and the reason is not that re-rendering is
 unreliable — `npm run screenshots:determinism` measures 1 distinct hash over 5 captures per
-scene here, under every browser flag configuration tried. The reason is that CI runs a different
-operating system, browser build and font stack, so comparing a fresh render against these hashes
-would be comparing across an axis nobody controls: the Linux runner captures scene 01 at 89,557
-bytes where the committed Windows capture is 66,320. Bit-reproducibility is content- and
-build-dependent — sibling repos measure otherwise — so it is measured per repo rather than
-assumed, and nothing in the pipeline relies on it. The manifest note recording all of this is
+scene here, under every browser flag configuration tried. The reason is that different operating
+systems, browser builds, and font stacks can produce different PNG bytes for the same correct
+scene. Bit-reproducibility is content- and build-dependent — sibling repos measure otherwise — so
+it is measured per repo rather than assumed, and nothing in the pipeline relies on it. The
+manifest note recording all of this is
 itself asserted, so it cannot be quietly rewritten into a licence for golden-image diffing.
 
 `npm run generate-sample-report` writes the offline AppSource sample report to

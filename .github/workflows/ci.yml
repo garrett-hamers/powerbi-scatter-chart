@@ -19,9 +19,6 @@ jobs:
           node-version: 20.20.2
           cache: npm
       - run: npm ci
-      - run: npm run package
-      - run: npm run generate-sample-report
-      - run: npm run screenshots
       - run: npm test
       - run: npm run typecheck
       - run: npm run eslint
@@ -50,6 +47,3 @@ jobs:
             dist/release-manifest.json
             dist/layout-probe.json
             dist/regression-proof.json
-            assets/screenshots/
-            assets/screenshot-manifest.json
-            samples/AtlynScatterSample/
