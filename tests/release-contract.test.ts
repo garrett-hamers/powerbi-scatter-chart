@@ -9,8 +9,11 @@ test("declares direct release tooling and complete audit gates", () => {
   const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8")) as any;
   const lockfile = JSON.parse(fs.readFileSync(path.join(root, "package-lock.json"), "utf8")) as any;
   const manifest = JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8")) as any;
+  assert.equal(packageJson.scripts.eslint, "npx eslint . --ext .js,.jsx,.ts,.tsx");
   assert.equal(packageJson.scripts.lint, "npx eslint . --ext .js,.jsx,.ts,.tsx");
   assert.equal(packageJson.scripts["lint:full"], "npx eslint . --ext .js,.jsx,.ts,.tsx");
+  assert.match(packageJson.scripts.package, /pbiviz package --certification-audit/);
+  assert.match(packageJson.scripts["certification-audit"], /npm run eslint/);
   assert.match(packageJson.scripts["certification-audit"], /pbiviz lint/);
   assert.match(packageJson.scripts["certification-audit"], /node scripts\/certification-audit\.cjs/);
   assert.match(packageJson.scripts["certification-audit"], /npm run reproducibility-audit/);
@@ -26,6 +29,10 @@ test("declares direct release tooling and complete audit gates", () => {
   assert.equal(packageJson.devDependencies.jszip, "3.10.1");
   assert.equal(packageJson.devDependencies["write-file-atomic"], "5.0.1");
   assert.equal(packageJson.scripts["release-manifest"], "node scripts/release-manifest.cjs");
+  assert.equal(packageJson.engines.node, ">=20.19.0");
+  assert.equal(lockfile.version, packageJson.version);
+  assert.equal(lockfile.packages[""].version, packageJson.version);
+  assert.equal(lockfile.packages[""].engines.node, packageJson.engines.node);
   for (const section of ["dependencies", "devDependencies"]) {
     for (const [dependency, version] of Object.entries(packageJson[section])) {
       assert.equal(lockfile.packages[""][section][dependency], version);
