@@ -18,27 +18,25 @@ Desktop opens it directly with no third-party tooling, it is reviewable in a pul
 regenerated deterministically by
 [`scripts/generate-sample-report.cjs`](../scripts/generate-sample-report.cjs).
 
-The native submission artifact is intentionally not source-controlled. After Desktop validation,
-save it to `dist/release/AtlynScatterSample.1.0.4.pbix`; `npm run release-manifest` records its
-size and SHA-256 without claiming it exists until the file is present.
+The native submission artifact is intentionally not source-controlled. Desktop validation has
+exported and reopened `dist/release/AtlynScatterSample.1.0.4.pbix`; it is 169,860 bytes with
+SHA-256 `1e5cfed64f631497895a168903cb3433024b60177caf4d68ce5988174739b1c2`. The pre-save and
+reopened Playwright JSON/screenshots are kept under `dist/release/desktop-validation/`, and
+`npm run release-manifest` records both the PBIX and evidence metadata.
 
-## Turning it into the submission .pbix
+## Desktop validation record
 
-1. Open `AtlynScatterSample/AtlynScatterSample.pbip` in Power BI Desktop.
-2. **Confirm the visual renders with data.** The sample data is a **DAX calculated table**, so the
-   model has no data source at all: nothing to connect to, nothing to refresh. Power BI Desktop is
-   expected to materialise the table while loading the model, so the tables should already hold
-   data when the project opens.
-3. **Only if** a table shows as empty, or Desktop reports *"Some of the tables have incomplete or
-   no data"*, run **Home > Refresh > Schema and data** before saving.
-4. **File > Save as**, choose **Power BI file (.pbix)**, and save as
-   `dist/release/AtlynScatterSample.1.0.4.pbix`.
+The native run materialised the calculated table without a refresh prompt. Both before-save and
+reopened states reported 8 received, analyzed, and rendered points, the exact accessible table
+rows, and one host context menu for a data-point right-click and one for an empty-space right-click.
+The exact PBIX was closed and reopened from the deterministic release path; its bytes and hash
+remained unchanged.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
 investigate** rather than entering any. A credential prompt would mean the model had acquired a
 data source, which `npm run publication-audit` and `tests/sample-report.test.ts` both forbid.
 
-Upload the resulting `.pbix` to Partner Center. Keep it out of this repository: it is a binary that
+Upload the resulting `.pbix` to Partner Center. Keep it out of source control: it is a binary that
 the deterministic generator cannot reproduce.
 
 ## What the report contains

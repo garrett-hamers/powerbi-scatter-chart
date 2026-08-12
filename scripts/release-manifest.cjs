@@ -24,6 +24,11 @@ const samplePbixRelativePath = path.join(
   "release",
   `AtlynScatterSample.${packageJson.version}.pbix`
 );
+const desktopEvidenceRelativePath = path.join(
+  "dist",
+  "release",
+  "desktop-validation"
+);
 if (packageName !== expectedPackageName) {
   throw new Error(`Release manifest package filename must be ${expectedPackageName}.`);
 }
@@ -41,6 +46,27 @@ function fileMetadata(relativePath) {
   };
 }
 
+function directoryFileMetadata(relativeDirectory) {
+  const absoluteDirectory = path.join(root, relativeDirectory);
+  if (!fs.existsSync(absoluteDirectory)) {
+    return [];
+  }
+
+  const files = [];
+  (function walk(relativeDirectoryPath) {
+    const absolute = path.join(root, relativeDirectoryPath);
+    for (const entry of fs.readdirSync(absolute).sort()) {
+      const next = path.join(relativeDirectoryPath, entry);
+      if (fs.statSync(path.join(root, next)).isDirectory()) {
+        walk(next);
+      } else {
+        files.push(fileMetadata(next));
+      }
+    }
+  })(relativeDirectory);
+  return files;
+}
+
 const screenshotDirectory = path.join(root, "assets", "screenshots");
 const screenshots = fs.existsSync(screenshotDirectory)
   ? fs.readdirSync(screenshotDirectory)
@@ -51,6 +77,8 @@ const screenshots = fs.existsSync(screenshotDirectory)
   : [];
 
 const sampleReportRoot = path.join("samples", "AtlynScatterSample");
+const nativePbixExists = fs.existsSync(path.join(root, samplePbixRelativePath));
+const desktopEvidenceFiles = directoryFileMetadata(desktopEvidenceRelativePath);
 const sampleReportFiles = [];
 (function walk(relativeDirectory) {
   const absolute = path.join(root, relativeDirectory);
@@ -88,9 +116,16 @@ const releaseManifest = {
       format: "PBIP source plus submission PBIX",
       files: sampleReportFiles.length,
       pbix: fileMetadata(samplePbixRelativePath),
-      pbixStatus: fs.existsSync(path.join(root, samplePbixRelativePath))
+      pbixStatus: nativePbixExists
         ? "Native PBIX exported from and reopened from the committed PBIP in Power BI Desktop."
-        : "Native PBIX not present; open the committed PBIP in Power BI Desktop, validate it, and save to the deterministic release path."
+        : "Native PBIX not present; open the committed PBIP in Power BI Desktop, validate it, and save to the deterministic release path.",
+      desktopValidation: {
+        status: nativePbixExists && desktopEvidenceFiles.length > 0
+          ? "Native PBIX was reopened and the visual, accessible table, and both host context-menu modes were revalidated."
+          : "Desktop validation evidence is not present in the deterministic release directory.",
+        evidencePath: portablePath(desktopEvidenceRelativePath),
+        files: desktopEvidenceFiles
+      }
     }
   },
   package: {

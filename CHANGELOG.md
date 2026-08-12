@@ -8,6 +8,9 @@
   prevents a touch long-press from invoking the host again when the browser emits `contextmenu`.
   The package also pins the audited `nanoid` transitive dependency to `3.3.17`, and all generated
   sample and screenshot provenance is regenerated from this exact bundle.
+- Completed the native Desktop sample release: `AtlynScatterSample.1.0.4.pbix` was saved,
+  closed, reopened from the deterministic release path, and revalidated for rendered data and both
+  right-click modes. Its native evidence is kept under `dist/release/desktop-validation/`.
 - Prepared `1.0.2.0` as the certification candidate. Packaging now runs
   `pbiviz package --certification-audit`, which verifies the compiled bundle contains no external
   requests. Because that mode changes the compiled bytes, the version was bumped instead of

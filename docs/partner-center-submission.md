@@ -1,7 +1,8 @@
 # Partner Center submission dossier — Atlyn Scatter
 
 This document records the concrete, final value of every field required to submit **Atlyn
-Scatter** to Microsoft AppSource through Partner Center, and the exact manual steps that remain.
+Scatter** to Microsoft AppSource through Partner Center, and the exact manual submission steps
+that remain.
 
 Requirements are taken from
 [Publish Power BI visuals to Partner Center](https://learn.microsoft.com/en-us/power-bi/developer/visuals/office-store)
@@ -16,15 +17,15 @@ The existing Partner Center offer is `1643e03c-3a1e-4079-b0b9-cf51c5cde401`. Rep
 the prior draft recorded a stale `1.0.1.0` package and a proposed `1.0.3.0` replacement. The
 right-click remediation is deliberately versioned as **`1.0.4.0`** so corrected PBIVIZ bytes are
 not substituted under a previously submitted or reviewed version. The active certification report
-policy is **1180.2.5 - Right Click Context Menu**. Do not submit from this repository until the
-Desktop evidence below is complete.
+policy is **1180.2.5 - Right Click Context Menu**. Desktop validation is complete; do not submit
+from this repository until the owner completes the remaining Partner Center steps.
 
 ## 1. Requirement checklist
 
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
 | Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.4.0.pbiviz` |
-| Sample report file (offline) | Yes | Ready as PBIP plus Desktop export | `samples/AtlynScatterSample/`, native file at `dist/release/AtlynScatterSample.1.0.4.pbix` |
+| Sample report file (offline) | Yes | Ready as PBIP plus reopened Desktop export | `samples/AtlynScatterSample/`, native file at `dist/release/AtlynScatterSample.1.0.4.pbix` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
 | Support URL (`https://`) | Yes | Ready | `https://atlyn.io/contact` |
@@ -211,16 +212,17 @@ Practical consequences when filling in the offer:
 
 Partner Center requires a sample report that works offline with no external connections. It is
 committed as a **Power BI project (PBIP)** at
-[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample). The native submission export is
-saved only after Desktop validation at `dist/release/AtlynScatterSample.1.0.4.pbix`.
+[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample). The native submission export was saved and reopened after Desktop validation at
+`dist/release/AtlynScatterSample.1.0.4.pbix`. It is 169,860 bytes with SHA-256
+`1e5cfed64f631497895a168903cb3433024b60177caf4d68ce5988174739b1c2`.
 
 A `.pbix` cannot be produced headlessly. Its `DataModel` part is a binary Analysis Services backup
 image, and `pbi-tools` is not a workaround: version 1.2.0 was tested against the installed Power BI
 Desktop and `pbi-tools compile` fails with
 `System.MissingMethodException: Method not found: 'Void Microsoft.PowerBI.Packaging.PowerBIPackager.Save(...)'`.
 The PBIP holds the identical report as plain text — PBIR JSON plus a TMDL semantic model — and
-Power BI Desktop opens it directly with no third-party tooling. The release manifest records PBIX
-metadata only after the native file exists.
+Power BI Desktop opens it directly with no third-party tooling. The release manifest records the
+PBIX and native evidence metadata under `dist/release/desktop-validation/`.
 
 ### Offline guarantees
 
@@ -243,16 +245,14 @@ partition.
 | 2 - Series breakdown | Category, Series, X, Y, Size | Grouped series, legend, host-assigned per-series colours |
 | 3 - Benchmark thresholds | Category, X, Y, Size | Benchmark mode (X = 30, Y = 10) with data labels on |
 
-### One-time conversion in Power BI Desktop
+### Completed Power BI Desktop validation
 
-1. Open `samples/AtlynScatterSample/AtlynScatterSample.pbip`.
-2. **Confirm the visual renders with data.** The calculated table has no data source, so Desktop
-   is expected to materialise it while loading the model, with no refresh step.
-3. **Only if** a table shows as empty, or Desktop reports *"Some of the tables have incomplete or
-   no data"*, run **Home > Refresh > Schema and data** before saving.
-4. **File > Save as**, choose **Power BI file (.pbix)**, and save as
-   `dist/release/AtlynScatterSample.1.0.4.pbix`.
-5. Upload that `.pbix` to Partner Center.
+The native run materialised the calculated table without a refresh prompt. Both pre-save and
+reopened evidence report 8 received, analyzed, and rendered points with the exact accessible table
+rows. Each state also shows one host context menu after a data-point right-click and one after an
+empty-space right-click. The exact PBIX was reopened from
+`dist/release/AtlynScatterSample.1.0.4.pbix`; its bytes and SHA-256 remained unchanged. The
+corresponding JSON and screenshots are in `dist/release/desktop-validation/`.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
 investigate** rather than entering any. The model must declare no data source at all, which
@@ -261,34 +261,26 @@ investigate** rather than entering any. The model must declare no data source at
 Optionally add a final "hints" page with a text box before saving; Microsoft lists it as a
 suggestion, not a requirement.
 
-## 8. Remaining manual, owner-controlled steps
+## 8. Remaining manual, owner-controlled submission steps
 
-These cannot be completed from this repository and are **not** simulated here.
+These are not simulated here and have not been submitted.
 
-   1. **Convert and validate the sample report**: open
-   `samples/AtlynScatterSample/AtlynScatterSample.pbip` in Power BI Desktop and choose
-   **File > Save as > Power BI file (.pbix)** at
-   `dist/release/AtlynScatterSample.1.0.4.pbix`. Confirm the visual renders with data, exercise
-   data-point and empty-space right-click context menus once each, close and reopen that exact PBIX,
-   and confirm the visual renders again. Refresh only if Desktop reports empty or incomplete tables — see
-   [section 7](#one-time-conversion-in-power-bi-desktop). This is the only remaining hard
-   AppSource artifact.
-2. **Enrol in Partner Center.** Complete or confirm the developer account at
+1. **Enrol in Partner Center.** Complete or confirm the developer account at
    <https://partner.microsoft.com/dashboard>.
-3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
+2. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
    model. Do not configure a transactable offer.
-   4. **Upload the package**: `dist/atlynScatter.1.0.4.0.pbiviz` (from a clean
+3. **Upload the package**: `dist/atlynScatter.1.0.4.0.pbiviz` (from a clean
    `npm run certification-audit` run).
-5. **Upload the sample `.pbix`** from step 1.
-6. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
-7. **Upload the screenshots**: the three files in `assets/screenshots/`.
-8. **Paste the listing URLs**: support `https://atlyn.io/contact`, privacy
+4. **Upload the sample `.pbix`** from `dist/release/AtlynScatterSample.1.0.4.pbix`.
+5. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
+6. **Upload the screenshots**: the three files in `assets/screenshots/`.
+7. **Paste the listing URLs**: support `https://atlyn.io/contact`, privacy
    `https://atlyn.io/legal/privacy`.
-9. **Attach the EULA**: upload `EULA.md` (or select Microsoft's standard contract).
-10. **Run Microsoft's pre-submission tests** in
+8. **Attach the EULA**: upload `EULA.md` (or select Microsoft's standard contract).
+9. **Run Microsoft's pre-submission tests** in
     [Testing submissions of Power BI custom visuals](https://learn.microsoft.com/en-us/power-bi/developer/visuals/submission-testing)
     against Power BI Desktop and the Power BI service.
-11. **Submit for review.** Optionally tick *Request Power BI certification* afterwards; certification
+10. **Submit for review.** Optionally tick *Request Power BI certification* afterwards; certification
     is a separate, slower process and must not be claimed until it is actually granted.
 
 ## 9. Pre-submission command sequence
