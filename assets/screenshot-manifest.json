@@ -3,7 +3,7 @@
   "note": "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time assertions measured and the SHA-256 of the PNG that capture wrote; the capture block records the packaged bundle those images were rendered from. The audits compare both against the committed files and the packaged visual, which catches a screenshot changing without its capture being re-run and the visual changing without the screenshots being re-captured. Each scene sha256 pins the committed bytes its assertions were applied to, and must never be repurposed as a comparison against a freshly rendered image. The reason is not that re-rendering is unreliable: CI runs a different operating system, browser build and font stack, so comparing a fresh render against these hashes would be comparing across an axis nobody controls, and the Linux runner already produces materially different bytes for the same correct scene. Capture does happen to be bit-reproducible here - measured at 1 distinct hash over 5 runs per scene under 5 browser flag configurations, see scripts/screenshot-determinism-probe.cjs - but that is a property of this machine, browser build and drawn content, it differs between sibling repositories, and nothing here relies on it.",
   "visual": {
     "name": "atlynScatter",
-    "version": "1.0.2.0",
+    "version": "1.0.4.0",
     "guid": "atlynScatter"
   },
   "capture": {
@@ -11,10 +11,10 @@
       "width": 1366,
       "height": 768
     },
-    "bundle": "atlynScatter.1.0.2.0.pbiviz",
-    "bundleSha256": "dab2e6f2a83c1deefe64afd68b25198a330e3b9712ce9987c1e0c1ffd5c7979d",
+    "bundle": "atlynScatter.1.0.4.0.pbiviz",
+    "bundleSha256": "82d46d8b2b453f648214bbd89a751cd67a29e22fe861e9152b7dd76431dbda22",
     "bundleOrigin": "resources/atlynScatter.pbiviz.json",
-    "bundleJsBytes": 47096,
+    "bundleJsBytes": 47150,
     "bundleCssBytes": 1757
   },
   "scenes": [
@@ -24,8 +24,8 @@
       "png": {
         "width": 1366,
         "height": 768,
-        "bytes": 89557,
-        "sha256": "81638232aa17aeb42dfbe7e80549500d7f245117a6916c7b9f01c096d29a4fbe"
+        "bytes": 66320,
+        "sha256": "d9e3ba09fdc35d46b21110fb133fdd140928ade89e2217ee1826a5059e13a069"
       },
       "assertions": [
         {
@@ -162,7 +162,7 @@
         {
           "metric": "tableVisibleRows",
           "expected": "at least 4",
-          "measured": 10
+          "measured": 8
         },
         {
           "metric": "tableEscapesRoot",
@@ -192,8 +192,8 @@
       "png": {
         "width": 1366,
         "height": 768,
-        "bytes": 96568,
-        "sha256": "33d4727add3c837e8de519f18c0d9ab2d75b00bc33c8128937d49227b04f6dc3"
+        "bytes": 71197,
+        "sha256": "4bfcb71bd1efb8a23b961c197594687af18438dc916237a5f5780b50c2d67cc0"
       },
       "assertions": [
         {
@@ -319,7 +319,7 @@
         {
           "metric": "tableVisibleRows",
           "expected": "at least 4",
-          "measured": 10
+          "measured": 8
         },
         {
           "metric": "tableEscapesRoot",
@@ -349,8 +349,8 @@
       "png": {
         "width": 1366,
         "height": 768,
-        "bytes": 123253,
-        "sha256": "01aa8ec463885c7a1cd7900726b454388a53b1de32f90a45b5196c3163207ed4"
+        "bytes": 90337,
+        "sha256": "e9febbdbed98dec15ddbd1d58c62e65e06a3e86ad88bae2f7f2ed0defc1a96e4"
       },
       "assertions": [
         {
@@ -472,7 +472,7 @@
         {
           "metric": "tableVisibleRows",
           "expected": "at least 4",
-          "measured": 10
+          "measured": 8
         },
         {
           "metric": "tableEscapesRoot",

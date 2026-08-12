@@ -18,7 +18,9 @@ Desktop opens it directly with no third-party tooling, it is reviewable in a pul
 regenerated deterministically by
 [`scripts/generate-sample-report.cjs`](../scripts/generate-sample-report.cjs).
 
-**No `.pbix` is committed and none is fabricated.**
+The native submission artifact is intentionally not source-controlled. After Desktop validation,
+save it to `dist/release/AtlynScatterSample.1.0.4.pbix`; `npm run release-manifest` records its
+size and SHA-256 without claiming it exists until the file is present.
 
 ## Turning it into the submission .pbix
 
@@ -29,7 +31,8 @@ regenerated deterministically by
    data when the project opens.
 3. **Only if** a table shows as empty, or Desktop reports *"Some of the tables have incomplete or
    no data"*, run **Home > Refresh > Schema and data** before saving.
-4. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
+4. **File > Save as**, choose **Power BI file (.pbix)**, and save as
+   `dist/release/AtlynScatterSample.1.0.4.pbix`.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
 investigate** rather than entering any. A credential prompt would mean the model had acquired a

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Prepared `1.0.4.0` as the right-click context-menu certification remediation. Data-point and
+  empty-space context menus now use the documented `selectionManager.showContextMenu(selectionId,
+  { x, y })` contract, with `{}` for empty space, one delegated handler, and a gesture guard that
+  prevents a touch long-press from invoking the host again when the browser emits `contextmenu`.
+  The package also pins the audited `nanoid` transitive dependency to `3.3.17`, and all generated
+  sample and screenshot provenance is regenerated from this exact bundle.
 - Prepared `1.0.2.0` as the certification candidate. Packaging now runs
   `pbiviz package --certification-audit`, which verifies the compiled bundle contains no external
   requests. Because that mode changes the compiled bytes, the version was bumped instead of

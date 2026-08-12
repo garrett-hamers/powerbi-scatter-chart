@@ -31,7 +31,7 @@ runs Microsoft's packaged-code certification audit and the complete automated
 release gate, including two clean package runs with byte-for-byte and SHA-256 equality. Those two
 runs package under timezones on opposite sides of UTC (`Etc/GMT+12` and `Etc/GMT-14`), so a
 build whose bytes depend on the builder's clock fails the gate. The generated package is written
-to `dist/atlynScatter.1.0.2.0.pbiviz`. Packaging normalizes ZIP entry order, timestamps (to a
+to `dist/atlynScatter.1.0.4.0.pbiviz`. Packaging normalizes ZIP entry order, timestamps (to a
 fixed UTC-anchored DOS timestamp), permissions, and compression before an atomic replacement.
 Package metadata is sourced from `pbiviz.json` and `capabilities.json`; stale PBIVIZ files are
 rejected. The audit also opens the generated package and asserts that the bundled script, the
@@ -198,7 +198,9 @@ report JSON plus a TMDL semantic model whose single table is a DAX `DATATABLE(..
 table, so the model declares no data source at all, with the built visual embedded under
 `CustomVisuals/` so nothing is fetched from the AppSource store. See
 [`samples/README.md`](samples/README.md) for the one-time Power BI Desktop "Save as .pbix" step.
-No `.pbix` is committed.
+The final native submission file is saved, after Desktop validation, at
+`dist/release/AtlynScatterSample.1.0.4.pbix`; it remains ignored because Desktop owns its binary
+DataModel.
 
 ## AppSource licensing
 

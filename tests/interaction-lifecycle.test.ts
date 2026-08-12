@@ -45,7 +45,9 @@ test("uses grouped series identities, complete highlights, and touch context men
   assert.match(source, /column\.highlights\?\.\[index\]/);
   assert.match(source, /column\?\.highlights\?\.length/);
   assert.match(source, /isHighlightedValue/);
-  assert.match(source, /emptySelectionId/);
+  assert.match(source, /contextMenuGestureHandled/);
+  assert.match(source, /identity \?\? \{\}/);
+  assert.equal(source.includes("emptySelectionId"), false);
   assert.match(source, /pointerType === "touch"/);
   assert.match(source, /setTimeout\(\(\) => this\.showContextMenu/);
   assert.match(source, /renderedPointFromEvent/);

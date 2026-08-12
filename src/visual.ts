@@ -248,7 +248,6 @@ export class Visual implements IVisual {
   private readonly host: IVisualHost;
   private readonly selectionManager: ISelectionManager;
   private readonly localizationManager: powerbi.extensibility.ILocalizationManager;
-  private readonly emptySelectionId: ISelectionId;
   private readonly root: HTMLElement;
   private readonly listeners: Array<() => void> = [];
   private readonly renderListeners: Array<() => void> = [];
@@ -265,6 +264,7 @@ export class Visual implements IVisual {
   private rtl = false;
   private reducedMotion = false;
   private allowInteractions = true;
+  private contextMenuGestureHandled = false;
   private emptyLongPressTimer?: number;
   private pointLongPressTimer?: number;
   private touchTooltipTimer?: number;
@@ -281,7 +281,6 @@ export class Visual implements IVisual {
     this.host = options.host;
     this.selectionManager = this.host.createSelectionManager();
     this.localizationManager = this.host.createLocalizationManager();
-    this.emptySelectionId = this.host.createSelectionIdBuilder().createSelectionId();
     this.allowInteractions = this.host.hostCapabilities.allowInteractions !== false;
     this.root = options.element;
     this.root.className = "atlyn-scatter";
@@ -561,11 +560,15 @@ export class Visual implements IVisual {
     });
     this.addListener(svg, "contextmenu", (event) => {
       event.preventDefault();
+      if (this.contextMenuGestureHandled) {
+        return;
+      }
       const rendered = this.renderedPointFromEvent(event);
       this.showContextMenu(rendered?.record.identity, event);
     });
     this.addListener(svg, "pointerdown", (event) => {
       const pointer = event as PointerEvent;
+      this.contextMenuGestureHandled = false;
       if (pointer.pointerType !== "touch") {
         return;
       }
@@ -1458,12 +1461,13 @@ export class Visual implements IVisual {
     if (!this.allowInteractions) {
       return;
     }
+    this.contextMenuGestureHandled = true;
     this.clearEmptyLongPress();
     this.clearPointLongPress();
     this.clearTouchTooltip();
     this.hideTooltip(event);
     const pointer = event as PointerEvent;
-    void this.selectionManager.showContextMenu(identity ?? this.emptySelectionId, {
+    void this.selectionManager.showContextMenu(identity ?? {}, {
       x: pointer.clientX ?? 0,
       y: pointer.clientY ?? 0
     });

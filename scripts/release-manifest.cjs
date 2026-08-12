@@ -19,6 +19,11 @@ const packageJson = JSON.parse(fs.readFileSync(path.join(root, "package.json"), 
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "pbiviz.json"), "utf8"));
 const packageBuffer = fs.readFileSync(packagePath);
 const expectedPackageName = `${manifest.visual.name}.${manifest.visual.version}.pbiviz`;
+const samplePbixRelativePath = path.join(
+  "dist",
+  "release",
+  `AtlynScatterSample.${packageJson.version}.pbix`
+);
 if (packageName !== expectedPackageName) {
   throw new Error(`Release manifest package filename must be ${expectedPackageName}.`);
 }
@@ -80,9 +85,12 @@ const releaseManifest = {
     appSourceListing: "Free",
     sampleReport: {
       path: portablePath(sampleReportRoot),
-      format: "PBIP",
+      format: "PBIP source plus submission PBIX",
       files: sampleReportFiles.length,
-      pbixStatus: "Open the PBIP in Power BI Desktop, confirm the visual renders with data, refresh only if Desktop reports empty or incomplete tables, then Save as .pbix; no .pbix is committed."
+      pbix: fileMetadata(samplePbixRelativePath),
+      pbixStatus: fs.existsSync(path.join(root, samplePbixRelativePath))
+        ? "Native PBIX exported from and reopened from the committed PBIP in Power BI Desktop."
+        : "Native PBIX not present; open the committed PBIP in Power BI Desktop, validate it, and save to the deterministic release path."
     }
   },
   package: {

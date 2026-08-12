@@ -1,6 +1,6 @@
 {
   "name": "atlyn-scatter",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "private": true,
   "description": "Certification-first explainable quadrant scatter visual for Power BI",
   "main": "dist/visual.js",
@@ -48,6 +48,7 @@
   },
   "overrides": {
     "hono": "^4.12.34",
-    "uuid": "^11.1.1"
+    "uuid": "^11.1.1",
+    "nanoid": "^3.3.17"
   }
 }

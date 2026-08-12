@@ -10,12 +10,21 @@ and [Get your Power BI visuals certified](https://learn.microsoft.com/en-us/powe
 > This repository makes **no claim** of Microsoft certification, AppSource listing status, or
 > Partner Center approval. Nothing below has been submitted yet.
 
+## Certification remediation provenance
+
+The existing Partner Center offer is `1643e03c-3a1e-4079-b0b9-cf51c5cde401`. Repository history for
+the prior draft recorded a stale `1.0.1.0` package and a proposed `1.0.3.0` replacement. The
+right-click remediation is deliberately versioned as **`1.0.4.0`** so corrected PBIVIZ bytes are
+not substituted under a previously submitted or reviewed version. The active certification report
+policy is **1180.2.5 - Right Click Context Menu**. Do not submit from this repository until the
+Desktop evidence below is complete.
+
 ## 1. Requirement checklist
 
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
-| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.2.0.pbiviz` |
-| Sample report file (offline) | Yes | Ready as PBIP; needs a one-time Desktop **Save as .pbix** (refresh only if Desktop reports empty tables) | `samples/AtlynScatterSample/` |
+| Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.4.0.pbiviz` |
+| Sample report file (offline) | Yes | Ready as PBIP plus Desktop export | `samples/AtlynScatterSample/`, native file at `dist/release/AtlynScatterSample.1.0.4.pbix` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
 | Support URL (`https://`) | Yes | Ready | `https://atlyn.io/contact` |
@@ -41,7 +50,7 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Visual name (`visual.name`) | `atlynScatter` |
 | Display name (`visual.displayName`) | `Atlyn Scatter` |
 | **GUID** (`visual.guid`) | `atlynScatter` — **never change this.** It is already recorded in the owner's storefront release manifest and download paths. Use Power BI Desktop developer mode to test new builds. |
-| Version (`visual.version`) | `1.0.2.0` (four digits, kept equal to `<package.json version>.0`) |
+| Version (`visual.version`) | `1.0.4.0` (four digits, kept equal to `<package.json version>.0`) |
 | Visual class (`visual.visualClassName`) | `Visual` |
 | API version (`apiVersion`) | `5.11.0` |
 | Description (`visual.description`) | "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader." |
@@ -52,13 +61,14 @@ Source of truth: [`pbiviz.json`](../pbiviz.json).
 | Privileges (`capabilities.json`) | `[]` — no `WebAccess`, `ExportContent`, or `LocalStorage` |
 | External dependencies (`dependencies`) | `null` |
 
-Package filename: `atlynScatter.1.0.2.0.pbiviz`, produced by `npm run package` into `dist/`.
+Package filename: `atlynScatter.1.0.4.0.pbiviz`, produced by `npm run package` into `dist/`.
 The build is byte-reproducible; `npm run release-manifest` writes `dist/release-manifest.json`
 with the source commit, package SHA-256, and the SHA-256 of every listing asset.
 
-Version `1.0.2.0` supersedes `1.0.1.0`. Enabling Microsoft's packaged-code certification audit
-changes the compiled bundle, so the version was bumped rather than republishing different bytes
-under an existing version. Never overwrite a package at an existing versioned location.
+Version `1.0.4.0` supersedes the prior `1.0.3.0` remediation candidate. The right-click behavior
+and the audited dependency change the compiled bundle, so the version is bumped rather than
+republishing different bytes under an existing version. Never overwrite a package at an existing
+versioned location.
 
 ## 3. Listing assets
 
@@ -86,7 +96,7 @@ npm run generate-brand-assets
 The screenshots are **real captures of the built visual**, not mock-ups. The pipeline in
 [`scripts/generate-screenshots.cjs`](../scripts/generate-screenshots.cjs):
 
-1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.2.0.pbiviz`;
+1. reads the actual bundled JavaScript and compiled CSS out of `dist/atlynScatter.1.0.4.0.pbiviz`;
 2. loads it in a self-contained HTML page with a mock `IVisualHost` and a hard-coded, fully
    offline categorical `DataView` (no network access, no randomness);
 3. captures the page with headless Microsoft Edge / Google Chrome at exactly 1366 x 768, and in
@@ -201,15 +211,16 @@ Practical consequences when filling in the offer:
 
 Partner Center requires a sample report that works offline with no external connections. It is
 committed as a **Power BI project (PBIP)** at
-[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample), not as a `.pbix`.
+[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample). The native submission export is
+saved only after Desktop validation at `dist/release/AtlynScatterSample.1.0.4.pbix`.
 
 A `.pbix` cannot be produced headlessly. Its `DataModel` part is a binary Analysis Services backup
 image, and `pbi-tools` is not a workaround: version 1.2.0 was tested against the installed Power BI
-Desktop 2.150.2102.0 and `pbi-tools compile` fails with
+Desktop and `pbi-tools compile` fails with
 `System.MissingMethodException: Method not found: 'Void Microsoft.PowerBI.Packaging.PowerBIPackager.Save(...)'`.
 The PBIP holds the identical report as plain text — PBIR JSON plus a TMDL semantic model — and
-Power BI Desktop opens it directly with no third-party tooling. **No `.pbix` is committed and none
-is fabricated.**
+Power BI Desktop opens it directly with no third-party tooling. The release manifest records PBIX
+metadata only after the native file exists.
 
 ### Offline guarantees
 
@@ -239,7 +250,8 @@ partition.
    is expected to materialise it while loading the model, with no refresh step.
 3. **Only if** a table shows as empty, or Desktop reports *"Some of the tables have incomplete or
    no data"*, run **Home > Refresh > Schema and data** before saving.
-4. **File > Save as**, choose **Power BI file (.pbix)**, and save outside this repository.
+4. **File > Save as**, choose **Power BI file (.pbix)**, and save as
+   `dist/release/AtlynScatterSample.1.0.4.pbix`.
 5. Upload that `.pbix` to Partner Center.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
@@ -253,17 +265,19 @@ suggestion, not a requirement.
 
 These cannot be completed from this repository and are **not** simulated here.
 
-1. **Convert the sample report to `.pbix`**: open
+   1. **Convert and validate the sample report**: open
    `samples/AtlynScatterSample/AtlynScatterSample.pbip` in Power BI Desktop and choose
-   **File > Save as > Power BI file (.pbix)**. Confirm the visual renders with data first, and
-   refresh only if Desktop reports empty or incomplete tables — see
+   **File > Save as > Power BI file (.pbix)** at
+   `dist/release/AtlynScatterSample.1.0.4.pbix`. Confirm the visual renders with data, exercise
+   data-point and empty-space right-click context menus once each, close and reopen that exact PBIX,
+   and confirm the visual renders again. Refresh only if Desktop reports empty or incomplete tables — see
    [section 7](#one-time-conversion-in-power-bi-desktop). This is the only remaining hard
    AppSource artifact.
 2. **Enrol in Partner Center.** Complete or confirm the developer account at
    <https://partner.microsoft.com/dashboard>.
 3. **Create the Power BI visual offer**, set the offer alias, and select the **Free** pricing
    model. Do not configure a transactable offer.
-4. **Upload the package**: `dist/atlynScatter.1.0.2.0.pbiviz` (from a clean
+   4. **Upload the package**: `dist/atlynScatter.1.0.4.0.pbiviz` (from a clean
    `npm run certification-audit` run).
 5. **Upload the sample `.pbix`** from step 1.
 6. **Upload the logo**: `assets/partner-center-logo-300x300.png`.
