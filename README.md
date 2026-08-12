@@ -200,9 +200,9 @@ table, so the model declares no data source at all, with the built visual embedd
 [`samples/README.md`](samples/README.md) for the one-time Power BI Desktop "Save as .pbix" step.
 The final native submission file is saved, after Desktop validation, at
 `dist/release/AtlynScatterSample.1.0.4.pbix`; it remains ignored because Desktop owns its binary
-DataModel. The final file is 169,860 bytes with SHA-256
-`1e5cfed64f631497895a168903cb3433024b60177caf4d68ce5988174739b1c2`, and the native
-pre-save/reopened evidence is kept under `dist/release/desktop-validation/`.
+DataModel. The corrected Public file is 42,057 bytes with SHA-256
+`6e564a620580ac52f459f1594b822c7bfa6d0d02c5c8719ec127fa5752c27931`, and the reopened-public
+evidence is kept under `dist/release/desktop-validation/reopened-public/`.
 
 ## AppSource licensing
 

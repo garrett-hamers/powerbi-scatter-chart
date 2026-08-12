@@ -79,6 +79,7 @@ const screenshots = fs.existsSync(screenshotDirectory)
 const sampleReportRoot = path.join("samples", "AtlynScatterSample");
 const nativePbixExists = fs.existsSync(path.join(root, samplePbixRelativePath));
 const desktopEvidenceFiles = directoryFileMetadata(desktopEvidenceRelativePath);
+const desktopEvidencePresent = desktopEvidenceFiles.length > 0;
 const sampleReportFiles = [];
 (function walk(relativeDirectory) {
   const absolute = path.join(root, relativeDirectory);
@@ -120,8 +121,10 @@ const releaseManifest = {
         ? "Native PBIX exported from and reopened from the committed PBIP in Power BI Desktop."
         : "Native PBIX not present; open the committed PBIP in Power BI Desktop, validate it, and save to the deterministic release path.",
       desktopValidation: {
-        status: nativePbixExists && desktopEvidenceFiles.length > 0
-          ? "Native PBIX was reopened and the visual, accessible table, and both host context-menu modes were revalidated."
+        reportVisibility: desktopEvidencePresent ? "Public" : null,
+        evidencePhase: desktopEvidencePresent ? "reopened-public" : null,
+        status: nativePbixExists && desktopEvidencePresent
+          ? "Public native PBIX was reopened and the visual, accessible table, and both host context-menu modes were revalidated."
           : "Desktop validation evidence is not present in the deterministic release directory.",
         evidencePath: portablePath(desktopEvidenceRelativePath),
         files: desktopEvidenceFiles

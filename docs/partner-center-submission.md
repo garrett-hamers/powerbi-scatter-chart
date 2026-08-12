@@ -25,7 +25,7 @@ from this repository until the owner completes the remaining Partner Center step
 | Requirement | Required | Status | Where it lives |
 | --- | --- | --- | --- |
 | Pbiviz package with complete metadata | Yes | Ready | `pbiviz.json`, built to `dist/atlynScatter.1.0.4.0.pbiviz` |
-| Sample report file (offline) | Yes | Ready as PBIP plus reopened Desktop export | `samples/AtlynScatterSample/`, native file at `dist/release/AtlynScatterSample.1.0.4.pbix` |
+| Sample report file (offline) | Yes | Ready as PBIP plus reopened Public Desktop export | `samples/AtlynScatterSample/`, native file at `dist/release/AtlynScatterSample.1.0.4.pbix` |
 | Logo, PNG, exactly 300 x 300 | Yes | Ready | `assets/partner-center-logo-300x300.png` |
 | Screenshots, PNG, 1–5, exactly 1366 x 768, <= 1024 KB | Yes | Ready (3 provided) | `assets/screenshots/` |
 | Support URL (`https://`) | Yes | Ready | `https://atlyn.io/contact` |
@@ -212,9 +212,9 @@ Practical consequences when filling in the offer:
 
 Partner Center requires a sample report that works offline with no external connections. It is
 committed as a **Power BI project (PBIP)** at
-[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample). The native submission export was saved and reopened after Desktop validation at
-`dist/release/AtlynScatterSample.1.0.4.pbix`. It is 169,860 bytes with SHA-256
-`1e5cfed64f631497895a168903cb3433024b60177caf4d68ce5988174739b1c2`.
+[`samples/AtlynScatterSample/`](../samples/AtlynScatterSample). The corrected Public native submission export was saved and reopened after Desktop validation at
+`dist/release/AtlynScatterSample.1.0.4.pbix`. It is 42,057 bytes with SHA-256
+`6e564a620580ac52f459f1594b822c7bfa6d0d02c5c8719ec127fa5752c27931`.
 
 A `.pbix` cannot be produced headlessly. Its `DataModel` part is a binary Analysis Services backup
 image, and `pbi-tools` is not a workaround: version 1.2.0 was tested against the installed Power BI
@@ -247,12 +247,12 @@ partition.
 
 ### Completed Power BI Desktop validation
 
-The native run materialised the calculated table without a refresh prompt. Both pre-save and
-reopened evidence report 8 received, analyzed, and rendered points with the exact accessible table
-rows. Each state also shows one host context menu after a data-point right-click and one after an
-empty-space right-click. The exact PBIX was reopened from
-`dist/release/AtlynScatterSample.1.0.4.pbix`; its bytes and SHA-256 remained unchanged. The
-corresponding JSON and screenshots are in `dist/release/desktop-validation/`.
+The reopened Public run materialised the calculated table without a refresh prompt and reported
+8 received, analyzed, and rendered points with the exact accessible table rows. It also shows one
+host context menu after a data-point right-click and one after an empty-space right-click. The
+exact Public PBIX was reopened from `dist/release/AtlynScatterSample.1.0.4.pbix`; its bytes and
+SHA-256 remained unchanged. The corresponding JSON and screenshots are in
+`dist/release/desktop-validation/reopened-public/`.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
 investigate** rather than entering any. The model must declare no data source at all, which

@@ -11,6 +11,8 @@
 - Completed the native Desktop sample release: `AtlynScatterSample.1.0.4.pbix` was saved,
   closed, reopened from the deterministic release path, and revalidated for rendered data and both
   right-click modes. Its native evidence is kept under `dist/release/desktop-validation/`.
+- Replaced the mislabeled Internal PBIX with the corrected Public artifact and regenerated the
+  reopened-public evidence and release metadata.
 - Prepared `1.0.2.0` as the certification candidate. Packaging now runs
   `pbiviz package --certification-audit`, which verifies the compiled bundle contains no external
   requests. Because that mode changes the compiled bytes, the version was bumped instead of

@@ -19,18 +19,19 @@ regenerated deterministically by
 [`scripts/generate-sample-report.cjs`](../scripts/generate-sample-report.cjs).
 
 The native submission artifact is intentionally not source-controlled. Desktop validation has
-exported and reopened `dist/release/AtlynScatterSample.1.0.4.pbix`; it is 169,860 bytes with
-SHA-256 `1e5cfed64f631497895a168903cb3433024b60177caf4d68ce5988174739b1c2`. The pre-save and
-reopened Playwright JSON/screenshots are kept under `dist/release/desktop-validation/`, and
-`npm run release-manifest` records both the PBIX and evidence metadata.
+exported and reopened the corrected Public
+`dist/release/AtlynScatterSample.1.0.4.pbix`; it is 42,057 bytes with SHA-256
+`6e564a620580ac52f459f1594b822c7bfa6d0d02c5c8719ec127fa5752c27931`. The reopened-public
+Playwright JSON/screenshots are kept under `dist/release/desktop-validation/reopened-public/`,
+and `npm run release-manifest` records the PBIX visibility and evidence metadata.
 
 ## Desktop validation record
 
-The native run materialised the calculated table without a refresh prompt. Both before-save and
-reopened states reported 8 received, analyzed, and rendered points, the exact accessible table
-rows, and one host context menu for a data-point right-click and one for an empty-space right-click.
-The exact PBIX was closed and reopened from the deterministic release path; its bytes and hash
-remained unchanged.
+The reopened Public run materialised the calculated table without a refresh prompt and reported
+8 received, analyzed, and rendered points with the exact accessible table rows. It also shows one
+host context menu after a data-point right-click and one after an empty-space right-click. The
+exact Public PBIX was reopened from the deterministic release path; its bytes and hash remained
+unchanged.
 
 If Desktop ever prompts for credentials, something external has crept into the model: **stop and
 investigate** rather than entering any. A credential prompt would mean the model had acquired a
