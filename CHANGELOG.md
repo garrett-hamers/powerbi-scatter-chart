@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed Partner Center policy 1180.2.12 by removing the simultaneous minimum-cardinality
+  requirements from the Category, X, and Y data roles. Fields can now be assigned one at a time;
+  the visual continues to show its localized data prompt until all three roles are available.
+  Advanced the certification package to `1.0.3.0`.
 - Prepared `1.0.2.0` as the certification candidate. Packaging now runs
   `pbiviz package --certification-audit`, which verifies the compiled bundle contains no external
   requests. Because that mode changes the compiled bytes, the version was bumped instead of

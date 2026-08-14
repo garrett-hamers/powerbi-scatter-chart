@@ -69,7 +69,10 @@ test("keeps accessibility presentation responsive to host preferences", () => {
 });
 
 test("renders explicit empty, partial, and bounded-data states", () => {
+  assert.match(source, /if \(!category \|\| !values \|\| category\.values\.length === 0\)/);
+  assert.match(source, /if \(!xColumn \|\| !yColumn\)/);
   assert.match(source, /!model \|\| records\.length === 0/);
+  assert.match(source, /Add one Category, one numeric X measure, and one numeric Y measure\./);
   assert.match(source, /model\.partialData/);
   assert.match(source, /model\.receivedCount/);
   assert.match(source, /model\.analyzedCount/);

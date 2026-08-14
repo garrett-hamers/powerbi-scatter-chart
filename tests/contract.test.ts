@@ -18,12 +18,13 @@ test("keeps the stable visual identity and certification-first capabilities", ()
   assert.deepEqual(roleNames, ["Category", "X", "Y", "Series", "Size", "Gradient", "Tooltips"]);
 });
 
-test("declares bounded categorical reduction and the complete optional role contract", () => {
+test("allows incremental role assignment with bounded categorical reduction", () => {
   const capabilities = JSON.parse(fs.readFileSync(path.join(root, "capabilities.json"), "utf8")) as any;
   const mapping = capabilities.dataViewMappings[0];
-  assert.equal(mapping.conditions[0].Category.min, 1);
-  assert.equal(mapping.conditions[0].X.min, 1);
-  assert.equal(mapping.conditions[0].Y.min, 1);
+  for (const role of ["Category", "X", "Y"]) {
+    assert.equal("min" in mapping.conditions[0][role], false, `${role} must accept the first field drop`);
+    assert.equal(mapping.conditions[0][role].max, 1);
+  }
   assert.equal(mapping.categorical.categories.dataReductionAlgorithm.window.count, 10000);
   assert.equal(mapping.categorical.values.group.by, "Series");
   const selectedRoles = mapping.categorical.values.group.select.map((item: any) => item.for.in);

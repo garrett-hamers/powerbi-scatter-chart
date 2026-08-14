@@ -3,7 +3,7 @@
   "note": "Written by scripts/generate-screenshots.cjs. Each scene records the values its capture-time assertions measured and the SHA-256 of the PNG that capture wrote; the capture block records the packaged bundle those images were rendered from. The audits compare both against the committed files and the packaged visual, which catches a screenshot changing without its capture being re-run and the visual changing without the screenshots being re-captured. Each scene sha256 pins the committed bytes its assertions were applied to, and must never be repurposed as a comparison against a freshly rendered image. The reason is not that re-rendering is unreliable: CI runs a different operating system, browser build and font stack, so comparing a fresh render against these hashes would be comparing across an axis nobody controls, and the Linux runner already produces materially different bytes for the same correct scene. Capture does happen to be bit-reproducible here - measured at 1 distinct hash over 5 runs per scene under 5 browser flag configurations, see scripts/screenshot-determinism-probe.cjs - but that is a property of this machine, browser build and drawn content, it differs between sibling repositories, and nothing here relies on it.",
   "visual": {
     "name": "atlynScatter",
-    "version": "1.0.2.0",
+    "version": "1.0.3.0",
     "guid": "atlynScatter"
   },
   "capture": {
@@ -11,8 +11,8 @@
       "width": 1366,
       "height": 768
     },
-    "bundle": "atlynScatter.1.0.2.0.pbiviz",
-    "bundleSha256": "dab2e6f2a83c1deefe64afd68b25198a330e3b9712ce9987c1e0c1ffd5c7979d",
+    "bundle": "atlynScatter.1.0.3.0.pbiviz",
+    "bundleSha256": "0e4902c95fa4b67b740c850448dbbb140a53c4e768e9ff51427faa0b8a30499f",
     "bundleOrigin": "resources/atlynScatter.pbiviz.json",
     "bundleJsBytes": 47096,
     "bundleCssBytes": 1757

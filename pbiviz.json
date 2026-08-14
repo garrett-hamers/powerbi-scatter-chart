@@ -4,7 +4,7 @@
     "displayName": "Atlyn Scatter",
     "guid": "atlynScatter",
     "visualClassName": "Visual",
-    "version": "1.0.2.0",
+    "version": "1.0.3.0",
     "description": "Turn any two measures into an explainable quadrant scatter chart: choose median, mean, zero, fixed, or benchmark thresholds, show a least-squares trend line with its equation and R-squared, size and colour bubbles by additional measures, and keep every point reachable by keyboard and screen reader.",
     "supportUrl": "https://atlyn.io/contact",
     "gitHubUrl": "https://github.com/garrett-hamers/powerbi-scatter-chart"

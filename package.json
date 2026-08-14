@@ -1,6 +1,6 @@
 {
   "name": "atlyn-scatter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Certification-first explainable quadrant scatter visual for Power BI",
   "main": "dist/visual.js",
