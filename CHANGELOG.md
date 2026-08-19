@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Fixed Partner Center policy 1180.2.5 by handling right-clicks on the visual root. Data points
+  retain their selection identities, while titles, margins, the accessible table, and all
+  remaining visual space open the host context menu with an empty selection. Advanced the
+  certification package to `1.0.6.0`.
 - Fixed Partner Center policy 1180.2.12 by removing the simultaneous minimum-cardinality
   requirements from the Category, X, and Y data roles. Fields can now be assigned one at a time;
   the visual continues to show its localized data prompt until all three roles are available.

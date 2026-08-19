@@ -248,7 +248,6 @@ export class Visual implements IVisual {
   private readonly host: IVisualHost;
   private readonly selectionManager: ISelectionManager;
   private readonly localizationManager: powerbi.extensibility.ILocalizationManager;
-  private readonly emptySelectionId: ISelectionId;
   private readonly root: HTMLElement;
   private readonly listeners: Array<() => void> = [];
   private readonly renderListeners: Array<() => void> = [];
@@ -281,7 +280,6 @@ export class Visual implements IVisual {
     this.host = options.host;
     this.selectionManager = this.host.createSelectionManager();
     this.localizationManager = this.host.createLocalizationManager();
-    this.emptySelectionId = this.host.createSelectionIdBuilder().createSelectionId();
     this.allowInteractions = this.host.hostCapabilities.allowInteractions !== false;
     this.root = options.element;
     this.root.className = "atlyn-scatter";
@@ -313,6 +311,12 @@ export class Visual implements IVisual {
       this.selectedKeys = this.keysForSelection(ids);
       this.rerenderFromLastData();
     });
+    this.addListener(this.root, "contextmenu", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      const rendered = this.renderedPointFromEvent(event);
+      this.showContextMenu(rendered?.record.identity, event);
+    }, true);
     this.addListener(this.root, "click", (event) => {
       const target = event.target;
       if (!(target instanceof Element) || (target !== this.root && target.closest(".atlyn-scatter__point"))) {
@@ -558,11 +562,6 @@ export class Visual implements IVisual {
       // mirrors itself explicitly, so the two flips would cancel out into overflow.
       direction: "ltr",
       "data-reduced-motion": String(this.reducedMotion)
-    });
-    this.addListener(svg, "contextmenu", (event) => {
-      event.preventDefault();
-      const rendered = this.renderedPointFromEvent(event);
-      this.showContextMenu(rendered?.record.identity, event);
     });
     this.addListener(svg, "pointerdown", (event) => {
       const pointer = event as PointerEvent;
@@ -1463,7 +1462,7 @@ export class Visual implements IVisual {
     this.clearTouchTooltip();
     this.hideTooltip(event);
     const pointer = event as PointerEvent;
-    void this.selectionManager.showContextMenu(identity ?? this.emptySelectionId, {
+    void this.selectionManager.showContextMenu(identity ?? {}, {
       x: pointer.clientX ?? 0,
       y: pointer.clientY ?? 0
     });
