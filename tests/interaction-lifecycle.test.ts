@@ -27,6 +27,13 @@ test("implements host interactions and accessible point navigation", () => {
     assert.match(source, new RegExp(token.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   }
   assert.equal(source.includes("contextMenuService"), false);
+  assert.match(
+    source,
+    /this\.addListener\(this\.root, "contextmenu",[\s\S]*?this\.showContextMenu\(rendered\?\.record\.identity, event\);[\s\S]*?}, true\);/
+  );
+  assert.doesNotMatch(source, /this\.addListener\(svg, "contextmenu"/);
+  assert.match(source, /event\.stopPropagation\(\)/);
+  assert.match(source, /showContextMenu\(identity \?\? \{\}/);
 });
 
 test("emits rendering lifecycle events and removes listeners on destroy", () => {
@@ -45,7 +52,7 @@ test("uses grouped series identities, complete highlights, and touch context men
   assert.match(source, /column\.highlights\?\.\[index\]/);
   assert.match(source, /column\?\.highlights\?\.length/);
   assert.match(source, /isHighlightedValue/);
-  assert.match(source, /emptySelectionId/);
+  assert.doesNotMatch(source, /emptySelectionId/);
   assert.match(source, /pointerType === "touch"/);
   assert.match(source, /setTimeout\(\(\) => this\.showContextMenu/);
   assert.match(source, /renderedPointFromEvent/);
@@ -69,7 +76,10 @@ test("keeps accessibility presentation responsive to host preferences", () => {
 });
 
 test("renders explicit empty, partial, and bounded-data states", () => {
+  assert.match(source, /if \(!category \|\| !values \|\| category\.values\.length === 0\)/);
+  assert.match(source, /if \(!xColumn \|\| !yColumn\)/);
   assert.match(source, /!model \|\| records\.length === 0/);
+  assert.match(source, /Add one Category, one numeric X measure, and one numeric Y measure\./);
   assert.match(source, /model\.partialData/);
   assert.match(source, /model\.receivedCount/);
   assert.match(source, /model\.analyzedCount/);
